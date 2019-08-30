@@ -1,0 +1,17 @@
+Símbolo         Valor Decimal   Valor Hexadecimal
+-------         -------------   -----------------
+LADRILHO_ATUAL            200                  C8
+CONTADOR_BITS             201                  C9
+PONTEIRO_ATUAL_LADRILHOS      208                  D0
+DANIFICADOS               209                  D1
+BONS                      210                  D2
+NAO_UTILIZADOS            211                  D3
+TOTAL                     212                  D4
+CASO_DANIFICADO_OU_FIM      100                  64
+CASO_NAO_EXISTE_OU_BOM      114                  72
+ADD_BOAS_CONDICOES        128                  80
+CASO_BYTE_ZERO            136                  88
+FIM                       144                  90
+NOVA_LEITURA               16                  10
+LEITURA                    30                  1E
+VERIFICA_CONTADOR          38                  26

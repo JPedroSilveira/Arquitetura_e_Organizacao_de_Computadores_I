@@ -1,0 +1,83 @@
+;;RESERVAR 213 ATÉ 255 PARA O VETOR DE LADRILHOS	
+
+ORG 200		;;CONSTANTES E VARIÁVEIS
+			Ladrilho_Atual: DB 0		;;TEMPORÁRIA
+			Contador_Bits: DB 0 		;;TEMPORÁRIA
+			
+
+ORG 208		;;SAÍDAS E ENTRADA
+			Ponteiro_Atual_Ladrilhos: DB 0	;;ENTRADA
+ 			Danificados: DB 0		;;SAÍDA
+ 			Bons: DB 0      		;;SAÍDA
+ 			Nao_Utilizados: DB 0		;;SAÍDA
+ 			Total: DB 0		  	;;SAÍDA
+
+
+ORG 100		;;OPERAÇÕES
+
+;;VERIFICA O CASO DE SER UM LADRILHO DANIFICADO OU FINAL
+Caso_Danificado_ou_Fim: ADD A Ponteiro_Atual_Ladrilhos,i;;MULTIPLICA O VALOR POR 2
+			STR A Ponteiro_Atual_Ladrilhos,i;;SALVA RESULTADO
+			JC    Fim			;;SE DER CARRY = FIM DA LEITURA	
+			LDR B Danificados		;;CASO CONTRÁRIO = DANIFICADOS
+			ADD B #1			;;ADICIONA 1 AOS DANIFICADOS
+ 		     	STR B Danificados		;;SALVA O NOVO VALOR
+			JMP   Verifica_Contador	   	;;CONTINUA A LEITURA
+			
+	
+;;VERIFICA CASO NÃO EXISTE OU BOAS CONDIÇÕES
+Caso_Nao_Existe_ou_Bom:	ADD A Ponteiro_Atual_Ladrilhos,i;;MULTIPLICA O VALOR POR 2
+			STR A Ponteiro_Atual_Ladrilhos,i;;SALVA RESULTADO
+			JC    Add_Boas_Condicoes	;;SE DER CARRY = BOAS CONDIÇÕES
+			LDR B Nao_Utilizados		;;CASO CONTRÁRIO = NÁO UTILIZADO
+			ADD B #1			;;ADICIONA 1 AOS NÃO UTILIZADOS
+			STR B Nao_Utilizados		;;SALVA O NOVO VALOR
+			JMP   Verifica_Contador		;;CONTINUA A LEITURA
+
+;;SOMA UM AOS LADRILHOS BONS
+Add_Boas_Condicoes:	LDR B Bons			;;CARREGA PARA MEMÓRIA
+			ADD B #1			;;ADICIONA 1 AOS EM BOAS CONDIÇÕES
+			STR B Bons			;;SALVA O NOVO VALOR   
+			JMP   Verifica_Contador		;;CONTINUA A LEITURA
+
+;;CASO O BYTE ESTEJA ZERADO = 4 LADRILHOS NÃO EXISTE
+Caso_Byte_Zero:		LDR B Nao_Utilizados		;;CARREGA CONTADOR NÃO UTILIZADOS
+			ADD B #4			;;ADICIONA 4 AOS NÃO UTILIZADOS
+			STR B Nao_Utilizados		;;SALVA O NOVO VALOR
+			JMP   Nova_Leitura		;;CONTINUA NOVA LEITURA	
+			
+;;FINALIZA O PROGRAMA
+Fim:			LDR B Danificados		;;SOMA LADRILHOS DANIFICADOS E BONS
+			ADD B Bons
+			STR B Total			;;SALVA NO TOTAL
+			HLT
+
+ORG 0 			;;MAIN
+			LDR A #0			;;ZERA AS SAÍDAS
+ 			STR A Danificados
+ 			STR A Bons
+ 			STR A Nao_Utilizados
+ 			STR A Total
+			
+			LDR B Ponteiro_Atual_Ladrilhos  ;;LÊ O PONTEIRO ATUAL DOS LADRILHOS
+			SUB B #1			;;SUBTRAI UM PARA MANTER O VALOR DE ACOROD COM O LOOPING
+			STR B Ponteiro_Atual_Ladrilhos  ;;SALVA O NOVO PONTEIRO ATUAL DOS LADRILHOS
+
+Nova_Leitura:		LDR B #0  			;;ZERA O CONTADOR DE BITS
+			STR B Contador_Bits
+			LDR B Ponteiro_Atual_Ladrilhos  ;;LÊ O PONTEIRO ATUAL DOS LADRILHOS
+			ADD B #1
+			STR B Ponteiro_Atual_Ladrilhos  ;;SALVA O NOVO PONTEIRO ATUAL DOS LADRILHOS
+			LDR A Ponteiro_Atual_Ladrilhos,i;;CARREGA O VALOR ATUAL EM A
+			JZ    Caso_Byte_Zero		;;CASO O BYTE ESTEJA ZERADO	
+
+Leitura:		ADD A Ponteiro_Atual_Ladrilhos,i;;MULTIPLICA O VALOR POR 2
+			STR A Ponteiro_Atual_Ladrilhos,i;;SALVA RESULTADO
+			JC    Caso_Danificado_ou_Fim	;;VERIFICA OS CASOS PELO UM
+			JMP   Caso_Nao_Existe_ou_Bom	
+Verifica_Contador:	LDR B Contador_Bits		;;SOMA 1 AO CONTADOR
+			ADD B #1
+			STR B Contador_Bits
+			SUB B #4			;;VERIFICA SE JÁ LEU TODOS OS BITS
+			JZ    Nova_Leitura		;;CASO SIM, PARTE PARA A PRÓXIMA LEITURA
+			JMP   Leitura			;;CASO NÃO, CONTINUA
