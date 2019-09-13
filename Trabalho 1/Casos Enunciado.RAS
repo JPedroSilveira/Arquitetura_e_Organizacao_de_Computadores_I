@@ -1,0 +1,201 @@
+Comentarios do arquivo
+Teste numero 1
+Caso 1 do enunciado do trabalho
+End.208 recebe 224
+End.209 recebe 255
+End.210 recebe 255
+End.211 recebe 255
+End.212 recebe 255
+End.224 recebe 6
+End.225 recebe 6
+End.226 recebe 87
+End.209 deve receber 2
+End.210 deve receber 5
+End.211 deve receber 4
+End.212 deve receber 7
+Valor inicial do PC e' 0
+Numero maximo de instrucoes e' 1000000
+
+Teste numero 2
+Caso 2 do enunciado do trabalho
+End.208 recebe 214
+End.209 recebe 255
+End.210 recebe 255
+End.211 recebe 255
+End.212 recebe 255
+End.214 recebe 192
+End.209 deve receber 0
+End.210 deve receber 0
+End.211 deve receber 0
+End.212 deve receber 0
+Valor inicial do PC e' 0
+Numero maximo de instrucoes e' 1000000
+
+Teste numero 3
+Caso 3 do enunciado do trabalho
+End.208 recebe 220
+End.209 recebe 255
+End.210 recebe 255
+End.211 recebe 255
+End.212 recebe 255
+End.220 recebe 24
+End.221 recebe 192
+End.209 deve receber 1
+End.210 deve receber 1
+End.211 deve receber 2
+End.212 deve receber 2
+Valor inicial do PC e' 0
+Numero maximo de instrucoes e' 1000000
+
+Teste numero 4
+Caso 4 do enunciado do trabalho
+End.208 recebe 215
+End.209 recebe 255
+End.210 recebe 255
+End.211 recebe 255
+End.212 recebe 255
+End.215 recebe 24
+End.216 recebe 3
+End.209 deve receber 1
+End.210 deve receber 1
+End.211 deve receber 5
+End.212 deve receber 2
+Valor inicial do PC e' 0
+Numero maximo de instrucoes e' 1000000
+
+Teste numero 5
+Caso 5 do enunciado do trabalho
+End.208 recebe 218
+End.209 recebe 255
+End.210 recebe 255
+End.211 recebe 255
+End.212 recebe 255
+End.218 recebe 85
+End.219 recebe 85
+End.220 recebe 192
+End.209 deve receber 0
+End.210 deve receber 8
+End.211 deve receber 0
+End.212 deve receber 8
+Valor inicial do PC e' 0
+Numero maximo de instrucoes e' 1000000
+
+Teste numero 6
+Caso 6 do enunciado do trabalho
+End.208 recebe 255
+End.209 recebe 255
+End.210 recebe 255
+End.211 recebe 255
+End.212 recebe 255
+End.255 recebe 3
+End.209 deve receber 0
+End.210 deve receber 0
+End.211 deve receber 3
+End.212 deve receber 0
+Valor inicial do PC e' 0
+Numero maximo de instrucoes e' 1000000
+
+Teste numero 7
+Caso 7 do enunciado do trabalho
+End.208 recebe 252
+End.209 recebe 255
+End.210 recebe 255
+End.211 recebe 255
+End.212 recebe 255
+End.252 recebe 170
+End.253 recebe 170
+End.254 recebe 170
+End.255 recebe 171
+End.209 deve receber 15
+End.210 deve receber 0
+End.211 deve receber 0
+End.212 deve receber 15
+Valor inicial do PC e' 0
+Numero maximo de instrucoes e' 1000000
+
+Teste numero 8
+Caso 8 do enunciado do trabalho
+End.208 recebe 213
+End.209 recebe 255
+End.210 recebe 255
+End.211 recebe 255
+End.212 recebe 255
+End.213 recebe 170
+End.214 recebe 85
+End.215 recebe 170
+End.216 recebe 85
+End.217 recebe 170
+End.218 recebe 85
+End.219 recebe 192
+End.209 deve receber 12
+End.210 deve receber 12
+End.211 deve receber 0
+End.212 deve receber 24
+Valor inicial do PC e' 0
+Numero maximo de instrucoes e' 1000000
+
+Teste numero 9
+Caso 9 do enunciado do trabalho
+End.208 recebe 222
+End.209 recebe 255
+End.210 recebe 255
+End.211 recebe 255
+End.212 recebe 255
+End.222 recebe 1
+End.223 recebe 2
+End.224 recebe 3
+End.209 deve receber 1
+End.210 deve receber 1
+End.211 deve receber 9
+End.212 deve receber 2
+Valor inicial do PC e' 0
+Numero maximo de instrucoes e' 1000000
+
+Teste numero 10
+Caso 10 do enunciado do trabalho
+End.208 recebe 217
+End.209 recebe 255
+End.210 recebe 255
+End.211 recebe 255
+End.212 recebe 255
+End.217 recebe 0
+End.218 recebe 0
+End.219 recebe 0
+End.220 recebe 0
+End.221 recebe 0
+End.222 recebe 0
+End.223 recebe 0
+End.224 recebe 0
+End.225 recebe 0
+End.226 recebe 3
+End.209 deve receber 0
+End.210 deve receber 0
+End.211 deve receber 39
+End.212 deve receber 0
+Valor inicial do PC e' 0
+Numero maximo de instrucoes e' 1000000
+
+Arquivo Trabalho 1 - V1 - Daedalus.mem:
+ Teste 1: HLT -- Resultado correto
+  Executadas 222 instrucoes, com 522 leituras e 58 escritas (580 acessos)
+ Teste 2: HLT -- Resultado correto
+  Executadas 25 instrucoes, com 60 leituras e 10 escritas (70 acessos)
+ Teste 3: HLT -- Resultado correto
+  Executadas 98 instrucoes, com 231 leituras e 28 escritas (259 acessos)
+ Teste 4: HLT -- Resultado correto
+  Executadas 149 instrucoes, com 348 leituras e 40 escritas (388 acessos)
+ Teste 5: HLT -- Resultado correto
+  Executadas 173 instrucoes, com 410 leituras e 46 escritas (456 acessos)
+ Teste 6: HLT -- Resultado correto
+  Executadas 76 instrucoes, com 177 leituras e 22 escritas (199 acessos)
+ Teste 7: HLT -- Resultado correto
+  Executadas 283 instrucoes, com 675 leituras e 76 escritas (751 acessos)
+ Teste 8: HLT -- Resultado correto
+  Executadas 457 instrucoes, com 1086 leituras e 118 escritas (1204 acessos)
+ Teste 9: HLT -- Resultado correto
+  Executadas 223 instrucoes, com 519 leituras e 58 escritas (577 acessos)
+ Teste 10: HLT -- Resultado correto
+  Executadas 175 instrucoes, com 411 leituras e 49 escritas (460 acessos)
+ Executadas um total de 1881 instrucoes, com 4439 leituras e 505 escritas (4944 acessos)
+ Todos os testes corretos
+
