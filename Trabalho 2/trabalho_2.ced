@@ -1,0 +1,466 @@
+ORG H2000
+	NUMERO_PAREDE:     	dw   0
+	LARGURA_PAREDE:		dw   0
+        ALTURA_PAREDE:		dw   0
+	COORDENADA_X_ATUAL:	dw   0
+	COORDENADA_Y_ATUAL:	dw   0
+	BOAS_CONDICOES_1:	dw   0 ;Contador
+	BOAS_CONDICOES_2:	dw   0 ;Contador
+	NAO_USADOS_1:           dw   0 ;Contador 
+	NAO_USADOS_2:           dw   0 ;Contador 
+	DANIFICADOS_1:		dw   0 ;Contador
+	DANIFICADOS_2:		dw   0 ;Contador
+	LADO:			dw   0 ;1 Direita, -1 Esquerda, 0 Não mover
+	BAIXO:			dw   0 ;0 Não mover, 1 Mover
+	MSG_IDENTIFICACAO: 	dab 'Autor: Joao Pedro Cartao: 00303397 ',0	
+	MSG_ASK_PAREDE:	   	dab 'Informe a parade:                  ',0
+	MSG_ENCERRAMENTO:  	dab 'Programa finalizado!               ',0
+	MSG_PAREDE_INVALIDA: 	dab 'Numero da parede invalido.         ',0
+	MSG_EMPTY:		dab '                                   ',0
+	MSG_INFO_PAREDE_1:	dab 'Parede ',0
+	MSG_INFO_PAREDE_2:	dab ', Largura=',0
+	MSG_INFO_PAREDE_3:      dab ', Altura=',0
+	MSG_COORDENADAS_1:	dab 'Coordenadas (',0
+	MSG_COORDENADAS_2:	dab ',',0
+	MSG_COORDENADAS_3:	dab ') - ',0
+	MSG_DANIFICADO:		dab 'danificado',0
+	MSG_BOM:		dab 'bom',0
+	MSG_VAZIO:		dab 'vazio',0
+	MSG_TOTAL_1:		dab 'Bons: ',0
+	MSG_TOTAL_2:		dab ', danifs: ',0
+	MSG_TOTAL_3:		dab ', vazios: ',0
+	MSG_TOTAL_4:		dab '.'
+
+ORG H0100
+Inicializa_o_visor:
+	MOV #0,R0  				;POSICAO INICIAL
+	MOV #4,R5				;SETCURSOR
+	JSR R7,H0080				;_SISTEMA
+;Inicializa o número da parede: 	
+	MOV #0,R0				;INICIALIZA COM ZERO
+	MOV R0,NUMERO_PAREDE
+;Mensagem de identificação
+	MOV #MSG_IDENTIFICACAO,R0
+	MOV #3,R5 				;PUTMSG
+	JSR R7,H0080 				;_SISTEMA
+Aguarda_enter:
+	MOV #1,R5				;GETCHAR
+        JSR R7,H0080   				;_SISTEMA
+	CMP R0,#13				;VERIFICA SE É A TECLA ENTER
+	BNE Aguarda_enter			;SE NÃO FOR CONTINUA AGUARDANDO
+Inicia_pergunta_parede:
+	MOV #0,R0  				;POSICAO INICIAL
+	MOV R0,NUMERO_PAREDE			;ZERA O NUMERO_PAREDE
+	MOV #4,R5				;SETCURSOR
+	JSR R7,H0080				;_SISTEMA
+;Mensagem de pergunta do número da parade:
+	MOV #MSG_ASK_PAREDE,R0
+	MOV #3,R5 				;PUTMSG
+	JSR R7,H0080 				;_SISTEMA
+;Re-posiciona o cursor:			
+	MOV #18,R0  				;POSICAO INICIAL
+	MOV #4,R5				;SETCURSOR
+	JSR R7,H0080				;_SISTEMA
+Aguarda_numero_parede:
+	MOV #1,R5				;GETCHAR
+        JSR R7,H0080   				;_SISTEMA
+	JMP Valida_casos_especiais_numero_parede;VERIFICA OS CASOS DE ENTER E BACKSPACE
+Imprime_o_numero_de_parede_digitado:
+	MOV #2,R5 				;PUTCHAR
+	JSR R7,H0080 				;_SISTEMA
+;Salva a parede
+	SUB #H30,R0				;DECODIFICA NÚMERO EM ASCII
+	MOV NUMERO_PAREDE,R1			;CARREGA O NUMERO_PAREDE EM R1
+	MOV NUMERO_PAREDE,R2			;CARREGA O NUMERO_PAREDE EM R2
+	ASL R2  				;MULTIPLICA O R2 POR 2
+	ASL R1					;MULTIPLICA O R1 POR 8
+	ASL R1 
+	ASL R1	
+	ADD R2,R1				;SOMA PARA FINALIZAR A MULTIPLICACAO POR 10
+	ADD R0,R1				;ADICIONA O NOVO DIGITO
+	MOV R1,NUMERO_PAREDE			;SALVA O NUMERO DA PAREDE NOVO
+	BR  Aguarda_numero_parede		;SEGUE AGUARDANDO O NÚMERO DA PAREDE
+Verifica_validade_parede:
+	MOV NUMERO_PAREDE,R0			;CARREGA O NÚMERO DA PAREDE EM R0 PARA A FUNÇÃO SETWALL
+	MOV #5,R5				;SETWALL
+	JSR R7,H0080 				;_SISTEMA
+	CMP R0,#HFFFF				;VERIFICA SE É '-1', PAREDE INVÁLIDA
+	BEQ Ir_para_informar_parede_invalida	;CASO DE PAREDE INVÁLIDA
+	MOV R0,LARGURA_PAREDE			;SALVA A LARGURA RETORNADA
+	MOV R1,ALTURA_PAREDE			;SALVA A ALTURA RETORNADA
+	JMP Imprime_informacoes_parede
+Ir_para_informar_parede_invalida:		
+	JMP Informar_parede_invalida		;Redireciona para trecho que informa parede inválida
+Imprime_informacoes_parede:
+	;Zera a posição do cursor
+	MOV #0,R0  				;POSICAO INICIAL
+	MOV #4,R5				;SETCURSOR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime a palavra vazia
+	MOV #MSG_EMPTY,R0
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	;Zera a posição do cursor novamente
+	MOV #0,R0  				;POSICAO INICIAL
+	MOV #4,R5				;SETCURSOR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime o inicio da mensagem com o número da parede
+	MOV #MSG_INFO_PAREDE_1,R0
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	;Imprime o número da parede
+	MOV NUMERO_PAREDE,R0
+	ADD #H30, R0				;CONVERTE NÚMERO PARA ASCII
+	MOV #2,R5				;PUTCHAR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime segunda parte da mensagem com a largura
+	MOV #MSG_INFO_PAREDE_2,R0
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	;Imprime o número da largura
+	MOV LARGURA_PAREDE,R0
+	ADD #H30, R0				;CONVERTE NÚMERO PARA ASCII
+	MOV #2,R5				;PUTCHAR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime segunda parte da mensagem com a altura
+	MOV #MSG_INFO_PAREDE_3,R0
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	;Imprime o número da altura
+	MOV ALTURA_PAREDE,R0
+	ADD #H30, R0				;CONVERTE NÚMERO PARA ASCII
+	MOV #2,R5				;PUTCHAR
+	JSR R7,H0080				;_SISTEMA	
+Aguardar_entrada_cancelar_continuar:
+	MOV #1,R5				;GETCHAR
+        JSR R7,H0080   				;_SISTEMA
+	JMP Verificar_cancelamento		;VALIDA SE O USUÁRIO DIGITOU 'C' ou 'c'
+Valida_enter_para_continuar:
+	CMP R0,#13				;VERIFICA SE É A TECLA ENTER
+	BNE Aguardar_entrada_cancelar_continuar	;SE NÃO FOR CONTINUA AGUARDANDO
+Iniciar_leitura_parede:
+	;Zera a posição da camera
+	MOV #7,R5				;MOVE00
+        JSR R7,H0080   				;_SISTEMA
+	MOV #0,R0
+	MOV R0,COORDENADA_X_ATUAL		;ZERA A COORDENADA_X_ATUAL
+	MOV R0,COORDENADA_Y_ATUAL		;ZERA A COORDENADA_Y_ATUAL
+	MOV R0,BAIXO				;ZERA O BAIXO
+	MOV R0,LADO				;INICIALIZA LADO COM 0
+	MOV #48,R0
+	MOV R0,DANIFICADOS_1			;ZERA CONTADORES
+	MOV R0,DANIFICADOS_2
+	MOV R0,BOAS_CONDICOES_1
+	MOV R0,BOAS_CONDICOES_2
+	MOV R0,NAO_USADOS_1
+	MOV R0,NAO_USADOS_2
+Ler_parede:
+	MOV #0,R5				;KBHIT
+	JSR R7,H0080				;_SISTEMA
+	TST R0
+	BNE Teclado_detectado
+Ler_parede_2:
+	MOV BAIXO,R1
+	BEQ Leitura_normal_parede
+	JMP Leitura_descida_parede
+Teclado_detectado:
+	MOV #1,R5				;GETCHAR
+	JSR R7,H0080				;_SISTEMA
+	CMP R0,#67				;VERIFICA SE É A TECLA C
+	BEQ Cancelar_e_retornar_leitura			
+	CMP R0,#99				;VERIFICA SE É A TECLA c
+	BEQ Cancelar_e_retornar_leitura
+	JMP Ler_parede_2			;VOLTA AO FLUXO SE O CARACTERE FOR DIFERENTE DE C e c
+Leitura_normal_parede:
+	MOV LADO,R0
+	JMP Continua_leitura_normal
+Cancelar_e_retornar_leitura:
+	JMP Cancelar_e_retornar
+Leitura_descida_parede:
+	MOV #0,R0				;Não movimenta para o lado na descida
+	MOV R0,BAIXO
+Continua_leitura_normal:	
+	MOV #6,R5				;READ
+	JSR R7,H0080				;_SISTEMA
+	CMP R0,#1				
+	BEQ Add_Boas_Condicoes			;TESTE BOAS_CONDICOES (==1)
+	BGT Add_Danificado			;TESTE DANIFICADO (>1)
+	JMP JMP_Add_Nao_Usado			;ELSE = DANIFICADO
+	
+Add_Boas_Condicoes:
+	JMP JMP_Add_Boas_Condicoes		
+Add_Danificado:
+	JMP JMP_Add_Danificado
+
+Continuar_ler_parede:
+	MOV LADO,R0			;CARREGA LADO EM R0
+	BEQ Inicializa_Lado
+Continuar_ler_parede_2:
+	CMP R0,#1
+	BGE Teste_leitura_direita	;LADO == 1 => Direita
+	JMP Teste_leitura_esquerda
+
+Inicializa_Lado:			;CONFIGURA LADO = DIREITA
+	MOV #1,R0
+	MOV R0,LADO
+	JMP Continuar_ler_parede_2
+
+Teste_leitura_direita:
+	MOV COORDENADA_X_ATUAL,R0
+	CMP R0,LARGURA_PAREDE
+	BLT Incrementar_leitura_direita
+	JMP Tentar_descer_e_mudar_direcao
+
+Incrementar_leitura_direita:
+	INC R0
+	MOV R0,COORDENADA_X_ATUAL	;AUMENTA O VALOR DE X
+	JMP Ler_parede
+
+Tentar_descer_e_mudar_direcao:
+	MOV COORDENADA_Y_ATUAL,R0
+	CMP R0,ALTURA_PAREDE
+	BLT Desder_e_mudar_direcao	;Desce uma casa e muda a direcao de leitura
+	JMP Final_da_leitura
+	
+Desder_e_mudar_direcao:
+	INC R0
+        MOV R0,COORDENADA_Y_ATUAL
+	MOV #1,R0
+	MOV R0,BAIXO			;BAIXO == Sim
+	MOV LADO,R0
+	NEG R0
+	MOV R0,LADO
+	JMP Ler_parede	
+
+Teste_leitura_esquerda:
+	MOV COORDENADA_X_ATUAL,R0
+	CMP R0,#0
+	BGT Incrementar_leitura_esquerda
+	JMP Tentar_descer_e_mudar_direcao
+
+Incrementar_leitura_esquerda:
+	DEC R0
+	MOV R0,COORDENADA_X_ATUAL	;DIMINUI O VALOR DE X
+	MOV #-1,R0
+	MOV R0,LADO			;ATIVA LADO = ESQUERDA
+	JMP Ler_parede
+	
+JMP_Add_Boas_Condicoes:
+	MOV COORDENADA_X_ATUAL, R2
+	MOV COORDENADA_Y_ATUAL, R3
+	JSR R7,Imprime_Coordenadas
+	MOV #MSG_BOM,R0				;Imprime a quarta parte da mensagem de coordenada
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	MOV BOAS_CONDICOES_1,R1
+	CMP R1,#57				;57 ASCII == 9
+	BEQ Somar_Decimo_Add_Boas_Condicoes
+	INC R1
+	MOV R1,BOAS_CONDICOES_1	
+	JMP Continuar_ler_parede
+Somar_Decimo_Add_Boas_Condicoes:
+	MOV BOAS_CONDICOES_2,R2
+	CMP R2,#57
+	BEQ Finalize_Somar_Decimo_Add_Boas_Condicoes
+	INC R2
+	MOV R2,BOAS_CONDICOES_2
+	MOV #48,R1
+	MOV R1,BOAS_CONDICOES_1
+Finalize_Somar_Decimo_Add_Boas_Condicoes:
+	JMP Continuar_ler_parede
+
+JMP_Add_Danificado:
+	MOV COORDENADA_X_ATUAL, R2
+	MOV COORDENADA_Y_ATUAL, R3
+	JSR R7,Imprime_Coordenadas
+	MOV #MSG_DANIFICADO,R0			;Imprime a quarta parte da mensagem de coordenada
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	MOV DANIFICADOS_1,R1
+	CMP R1,#57				;57 ASCII == 9
+	BEQ Somar_Decimo_Add_Danificado
+	INC R1
+	MOV R1,DANIFICADOS_1
+	JMP Continuar_ler_parede
+Somar_Decimo_Add_Danificado:
+	MOV DANIFICADOS_2,R2
+	CMP R2,#57
+	BEQ Finalize_Somar_Decimo_Add_Danificado
+	INC R2
+	MOV R2,DANIFICADOS_2
+	MOV #48,R1
+	MOV R1,DANIFICADOS_1
+Finalize_Somar_Decimo_Add_Danificado:
+	JMP Continuar_ler_parede
+
+JMP_Add_Nao_Usado:
+	JMP Continuar_ler_parede
+	MOV COORDENADA_X_ATUAL, R2
+	MOV COORDENADA_Y_ATUAL, R3
+	JSR R7,Imprime_Coordenadas
+	MOV #MSG_VAZIO,R0			;Imprime a quarta parte da mensagem de coordenada
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	MOV NAO_USADOS_1,R1
+	CMP R1,#57				;57 ASCII == 9
+	BEQ Somar_Decimo_Add_Nao_Usado
+	INC R1
+	MOV R1,NAO_USADOS_1
+	JMP Continuar_ler_parede
+Somar_Decimo_Add_Nao_Usado:
+	MOV NAO_USADOS_2,R2
+	CMP R2,#57
+	BEQ Finalize_Somar_Decimo_Add_Nao_Usado
+	INC R2
+	MOV R2,NAO_USADOS_2
+	MOV #48,R1
+	MOV R1,NAO_USADOS_1
+Finalize_Somar_Decimo_Add_Nao_Usado:
+	JMP Continuar_ler_parede
+
+;Recebe as coordenadas em R2(X) e R3(Y)
+Imprime_Coordenadas:
+	;Zera a posição do cursor
+	MOV #0,R0  				;POSICAO INICIAL
+	MOV #4,R5				;SETCURSOR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime a palavra vazia
+	MOV #MSG_EMPTY,R0
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	;Zera a posição do cursor novamente
+	MOV #0,R0  				;POSICAO INICIAL
+	MOV #4,R5				;SETCURSOR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime o inicio da mensagem de coordenada
+	MOV #MSG_COORDENADAS_1,R0
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	;Imprime o X
+	MOV R2,R0
+	ADD #H30, R0				;CONVERTE NÚMERO PARA ASCII
+	MOV #2,R5				;PUTCHAR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime a segunda parte da mensagem de coordenada
+	MOV #MSG_COORDENADAS_2,R0
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	;Imprime o Y
+	MOV R3,R0
+	ADD #H30, R0				;CONVERTE NÚMERO PARA ASCII
+	MOV #2,R5				;PUTCHAR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime a terceira parte da mensagem de coordenada
+	MOV #MSG_COORDENADAS_3,R0
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	RTS R7					;RETORNA
+	
+
+Final_da_leitura:
+	;Zera a posição do cursor
+	MOV #0,R0  				;POSICAO INICIAL
+	MOV #4,R5				;SETCURSOR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime a palavra vazia
+	MOV #MSG_EMPTY,R0
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	;Zera a posição do cursor novamente
+	MOV #0,R0  				;POSICAO INICIAL
+	MOV #4,R5				;SETCURSOR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime o inicio da mensagem do total
+	MOV #MSG_TOTAL_1,R0
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	;Imprime o X MSD
+	MOV BOAS_CONDICOES_2,R0
+	MOV #2,R5				;PUTCHAR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime o X LSD
+	MOV BOAS_CONDICOES_1,R0
+	MOV #2,R5				;PUTCHAR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime a segunda parte da mensagem do total
+	MOV #MSG_TOTAL_2,R0
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	;Imprime o Y MSD
+	MOV DANIFICADOS_2,R0
+	MOV #2,R5				;PUTCHAR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime o Y LSD
+	MOV DANIFICADOS_1,R0
+	MOV #2,R5				;PUTCHAR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime a terceira parte da mensagem do total
+	MOV #MSG_TOTAL_3,R0
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	;Imprime o Z MSD
+	MOV NAO_USADOS_2,R0
+	MOV #2,R5				;PUTCHAR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime o Z LSD
+	MOV NAO_USADOS_1,R0
+	MOV #2,R5				;PUTCHAR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime a quarta parte da mensagem do total
+	MOV #MSG_TOTAL_4,R0
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	JMP Aguarda_enter
+
+Verificar_cancelamento:
+	CMP R0,#67				;VERIFICA SE É A TECLA C
+	BEQ Cancelar_e_retornar			
+	CMP R0,#99				;VERIFICA SE É A TECLA c
+	BEQ Cancelar_e_retornar
+	JMP Valida_enter_para_continuar
+Cancelar_e_retornar:
+	MOV #0,R0				;ZERA O NUMERO_PAREDE
+	MOV R0,NUMERO_PAREDE
+	JMP Inicia_pergunta_parede	
+
+Informar_parede_invalida:
+	MOV #0,R0				;ZERA O NÚMERO DA PAREDE
+	MOV R0,NUMERO_PAREDE
+	MOV #0,R0  				;POSICAO INICIAL
+	MOV #4,R5				;SETCURSOR
+	JSR R7,H0080				;_SISTEMA
+	MOV #MSG_PAREDE_INVALIDA,R0
+	MOV #3,R5				;PUTMSG
+	JSR R7,H0080				;_SISTEMA
+	JMP  Aguarda_enter			;VOLTA A ETAPA DE PERGUNTA DA PAREDE
+
+Valida_casos_especiais_numero_parede:
+	CMP R0,#13				;VERIFICA SE NÃO FOI ENTER
+	BEQ Enter_no_numero_parede      	;SE FOR ENTER ENCERRA O PROGRAMA SE NÃO CONTINUA
+	CMP R0,#8				;VERIFICA SE É BACKSPACE
+	BEQ Backspace_no_numero_parede		;SE FOR BACKSPACE ZERA E VOLTA A PEDIR O NÚMERO
+	JMP Imprime_o_numero_de_parede_digitado ;VOLTA AO FLUXO ORIGINAL
+
+Backspace_no_numero_parede:
+	MOV #0,R0
+	MOV R0,NUMERO_PAREDE
+	JMP  Inicia_pergunta_parede		;REINICIA A PERGUNTA PELO NÚMERO DA PAREDE
+
+Enter_no_numero_parede:
+	MOV NUMERO_PAREDE,R1  			;CARREGA O NÚMERO DA PAREDE
+	CMP R1,#0				;VERIFICA SE É ZERO
+	BEQ Encerrar_o_programa			;ENCERRA O PROGRAMA
+	JMP Verifica_validade_parede            ;FINALIZA LEITURA DO NÚMERO DA PAREDE
+						
+Encerrar_o_programa:
+	;Reposiciona o cursor
+	MOV #0,R0  				;POSICAO INICIAL
+	MOV #4,R5				;SETCURSOR
+	JSR R7,H0080				;_SISTEMA
+	;Imprime a mensagem de encerramento
+	MOV #MSG_ENCERRAMENTO,R0
+	MOV #3,R5 			;PUTMSG
+	JSR R7,H0080 			;_SISTEMA
+	HLT
+	
+	
