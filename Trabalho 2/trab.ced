@@ -449,11 +449,12 @@ Finalizar_Leitura_Parede:
 ;VARIÁVEIS
 
 ORG H2000
-	
-  ;FUNÇÕES DO SISTEMA
+	COORDENADA_X:	        dw   0
+	COORDENADA_Y:	        dw   0
 	BOAS_CONDICOES:	        dw   0 ;Contador
 	NAO_USADOS:             dw   0 ;Contador 
 	DANIFICADOS:		dw   0 ;Contador
+  ;FUNÇÕES DO SISTEMA
 	KBHIT:			dw   0
 	GETCHAR:		dw   1
  	PUTCHAR:		dw   2
@@ -470,8 +471,6 @@ ORG H2000
 	NUMERO_PAREDE:     	dw   0
 	LARGURA_PAREDE:		dw   0
         ALTURA_PAREDE:		dw   0
-	COORDENADA_X:	        dw   0
-	COORDENADA_Y:	        dw   0
 	LADO:			dw   0 ;1 Direita, -1 Esquerda, 0 Não mover
 	VALOR_LADRILHO:		dw   0
 
