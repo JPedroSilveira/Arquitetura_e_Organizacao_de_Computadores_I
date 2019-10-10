@@ -10,15 +10,15 @@ Inicia_Pergunta_Parede:
 	BEQ Caso_enter_com_numero_vazio
 	CMP R4,#3 				
 	BEQ Caso_backspace
-	JMP Caso_numero_digitado		;ELSE => CASO N⁄MERO DIGITADO
+	JMP Caso_numero_digitado		;ELSE => CASO N√öMERO DIGITADO
 Caso_enter_com_numero_vazio:
 	JMP Encerrar_o_programa
 Caso_backspace:
 	JMP Inicia_pergunta_parede
 Caso_numero_digitado:
 	JSR R7,Verifica_Validade_Parede
-	CMP R0,#HFFFF				;VERIFICA SE … '-1', PAREDE INV¡LIDA
-	BEQ Caso_Parede_Invalida		;CASO DE PAREDE INV¡LIDA
+	CMP R0,#HFFFF				;VERIFICA SE √â '-1', PAREDE INV√ÅLIDA
+	BEQ Caso_Parede_Invalida		;CASO DE PAREDE INV√ÅLIDA
 	JMP Caso_Parede_Valida
 Caso_Parede_Invalida:
 	JSR R7,Imprime_MSG_Parede_Invalida
@@ -30,18 +30,18 @@ Esperar_Entrada_Usuario:
 	JSR R7,Pegar_Caracter_Digitado
 Verifica_Cancelamento:
 	MOV R1,C_CODE
-	CMP R0,R1				;VERIFICA SE … A TECLA C
+	CMP R0,R1				;VERIFICA SE √â A TECLA C
 	BEQ Cancelar_E_Retornar	
 	MOV R1,C_MIN_CODE	
-	CMP R0,R1				;VERIFICA SE … A TECLA c
+	CMP R0,R1				;VERIFICA SE √â A TECLA c
 	BEQ Cancelar_E_Retornar
 	JMP Verifica_Enter
 Cancelar_E_Retornar:
 	JMP Inicia_pergunta_parede
 Verifica_Enter:	
-	CMP R0,ENTER_CODE			;VERIFICA SE … A TECLA ENTER
+	CMP R0,ENTER_CODE			;VERIFICA SE √â A TECLA ENTER
 	BEQ Iniciar_Dados_Leitura_Parede
-	JMP Esperar_Entrada_Usuario		;SE N√O FOR 'ENTER','C' ou 'c' CONTINUA AGUARDANDO
+	JMP Esperar_Entrada_Usuario		;SE N√ÉO FOR 'ENTER','C' ou 'c' CONTINUA AGUARDANDO
 Iniciar_Dados_Leitura_Parede:
 	JSR R7,Inicializar_Dados_Leitura
 	JMP Iniciar_Leitura_Parede
@@ -53,10 +53,10 @@ Iniciar_Leitura_Parede:
 Teclado_detectado:
 	JSR R7,Pegar_Caracter_Digitado
 	MOV R1,C_CODE
-	CMP R0,R1				;VERIFICA SE … A TECLA C
+	CMP R0,R1				;VERIFICA SE √â A TECLA C
 	BEQ Cancelar_Leitura
 	MOV R1,C_MIN_CODE				
-	CMP R0,R1				;VERIFICA SE … A TECLA c
+	CMP R0,R1				;VERIFICA SE √â A TECLA c
 	BEQ Cancelar_Leitura
 	JMP Ler_Camera				;VOLTA AO FLUXO SE O CARACTERE FOR DIFERENTE DE C e c
 Cancelar_Leitura:
@@ -89,7 +89,7 @@ Encerrar_o_programa:
 	HLT
 
 ;-------------------------------------------------------------------------------------
-;FUN«’ES DOS SISTEMA	
+;FUN√á√ïES DOS SISTEMA	
 
 Mover_Camera_Baixo:
 	MOV #0,R0
@@ -118,23 +118,22 @@ Verificar_Teclado:
 	JSR R7,H0080				
 	RTS R7
 
-;R0 = {0 para N„o Usado, 1 para Boas CondiÁıes e 2 para Ladrilho Danificado}
+;R0 = {0 para N√£o Usado, 1 para Boas Condi√ß√µes e 2 para Ladrilho Danificado}
 Ler_Posicao_Atual_Camera:
 	MOV #0,R0
 	MOV #0,R1
 	MOV READ,R5				
-	JSR R7,H0080		
+	JSR R7,H0080
+	RTS R7		
 
 ;Retorna R4 = {0 para sucesso, 1 para leitura finalizada}
 Atualizar_Coordenadas:
 	MOV LADO,R0
 	CMP R0,#1
 	BEQ Caso_direito
-	JSR R7,Caso_Esquerdo_F     ;ELSE = CASO ESQUERDO
-	RTS R7
+	JMP Caso_Esquerdo_F     ;ELSE = CASO ESQUERDO
      Caso_direito:
-	JSR R7,Caso_Direito_F
-	RTS R7
+	JMP Caso_Direito_F
 
 Caso_Direito_F:
 	MOV COORDENADA_X,R0
@@ -201,7 +200,7 @@ Verificar_Valor_Ladrilho:
 	BEQ Add_ladrinho_boas_condicoes
 	CMP R0,#2
 	BEQ Add_ladrinho_danificado
-	BR  Add_ladrinho_nao_usado		;ELSE = N√O USADO
+	BR  Add_ladrinho_nao_usado		;ELSE = N√ÉO USADO
      Add_ladrinho_boas_condicoes:
 	MOV BOAS_CONDICOES,R0
 	ADD #1,R0				;BOAS_CONDICOES++
@@ -227,7 +226,7 @@ Imprime_Coordenadas:
 	JSR R7,H0080				
 	;Imprime o X
 	MOV COORDENADA_X,R0
-	ADD #H30,R0				;CONVERTE N⁄MERO PARA ASCII
+	ADD #H30,R0				;CONVERTE N√öMERO PARA ASCII
 	MOV PUTCHAR,R5				
 	JSR R7,H0080				
 	;Imprime a segunda parte da mensagem de coordenada
@@ -236,7 +235,7 @@ Imprime_Coordenadas:
 	JSR R7,H0080				
 	;Imprime o Y
 	MOV COORDENADA_Y,R0
-	ADD #H30,R0				;CONVERTE N⁄MERO PARA ASCII
+	ADD #H30,R0				;CONVERTE N√öMERO PARA ASCII
 	MOV PUTCHAR,R5				
 	JSR R7,H0080				
 	;Imprime a terceira parte da mensagem de coordenada
@@ -299,31 +298,31 @@ Imprime_MSG_Parede_Invalida:
 Imprime_Informacoes_Parede:
 	JSR R7,Zera_Visor
 	JSR R7,Inicializa_Visor
-	;Imprime o inicio da mensagem com o n˙mero da parede
+	;Imprime o inicio da mensagem com o n√∫mero da parede
 	MOV #MSG_INFO_PAREDE_1,R0
 	MOV PUTMSG,R5				
 	JSR R7,H0080				
-	;Imprime o n˙mero da parede
+	;Imprime o n√∫mero da parede
 	MOV NUMERO_PAREDE,R0
-	ADD #H30, R0				;CONVERTE N⁄MERO PARA ASCII
+	ADD #H30, R0				;CONVERTE N√öMERO PARA ASCII
 	MOV PUTCHAR,R5				
 	JSR R7,H0080				
 	;Imprime segunda parte da mensagem com a largura
 	MOV #MSG_INFO_PAREDE_2,R0
 	MOV PUTMSG,R5				
 	JSR R7,H0080				
-	;Imprime o n˙mero da largura
+	;Imprime o n√∫mero da largura
 	MOV LARGURA_PAREDE,R0
-	ADD #H30, R0				;CONVERTE N⁄MERO PARA ASCII
+	ADD #H30, R0				;CONVERTE N√öMERO PARA ASCII
 	MOV PUTCHAR,R5				
 	JSR R7,H0080				
 	;Imprime segunda parte da mensagem com a altura
 	MOV #MSG_INFO_PAREDE_3,R0
 	MOV PUTMSG,R5				
 	JSR R7,H0080				
-	;Imprime o n˙mero da altura
+	;Imprime o n√∫mero da altura
 	MOV ALTURA_PAREDE,R0
-	ADD #H30, R0				;CONVERTE N⁄MERO PARA ASCII
+	ADD #H30, R0				;CONVERTE N√öMERO PARA ASCII
 	MOV PUTCHAR,R5				
 	JSR R7,H0080
 	RTS R7				
@@ -331,8 +330,8 @@ Imprime_Informacoes_Parede:
 Aguarda_Enter:
 	MOV GETCHAR,R5				
         JSR R7,H0080  			
-	CMP R0,ENTER_CODE			;VERIFICA SE … A TECLA ENTER
-	BNE Aguarda_enter			;SE N√O FOR CONTINUA AGUARDANDO		
+	CMP R0,ENTER_CODE			;VERIFICA SE √â A TECLA ENTER
+	BNE Aguarda_enter			;SE N√ÉO FOR CONTINUA AGUARDANDO		
 	RTS R7					;SE FOR RETORNA  
 
 ;Pega o caracter e retorna em R0
@@ -341,20 +340,20 @@ Pegar_Caracter_Digitado:
         JSR R7,H0080   				;_SISTEMA
 	RTS R7
 
-;Rertorna em R0 '-1' para parede inv·lida caso contr·rio salva a largura e a altura
+;Rertorna em R0 '-1' para parede inv√°lida caso contr√°rio salva a largura e a altura
 Verifica_Validade_Parede:
-	MOV NUMERO_PAREDE,R0			;CARREGA O N⁄MERO DA PAREDE EM R0 PARA A FUN«√O SETWALL
+	MOV NUMERO_PAREDE,R0			;CARREGA O N√öMERO DA PAREDE EM R0 PARA A FUN√á√ÉO SETWALL
 	MOV SETWALL,R5				;SETWALL
 	JSR R7,H0080 				
-	CMP R0,#HFFFF				;VERIFICA SE … '-1', PAREDE INV¡LIDA
-	BEQ Retorno_Verifica_Validade_Parede	;CASO DE PAREDE INV¡LIDA
+	CMP R0,#HFFFF				;VERIFICA SE √â '-1', PAREDE INV√ÅLIDA
+	BEQ Retorno_Verifica_Validade_Parede	;CASO DE PAREDE INV√ÅLIDA
 	MOV R0,LARGURA_PAREDE			;SALVA A LARGURA RETORNADA
 	MOV R1,ALTURA_PAREDE			;SALVA A ALTURA RETORNADA
       Retorno_Verifica_Validade_Parede:	
 	RTS R7	
 
 Inicializar_Dados_Leitura:
-	;Zera a posiÁ„o da camera
+	;Zera a posi√ß√£o da camera
 	MOV MOVE00,R5				
         JSR R7,H0080   				
 	MOV #0,R0				;ZERA DADOS
@@ -369,43 +368,43 @@ Inicializar_Dados_Leitura:
 	RTS R7
      
 
-;;Retorna em R4: 1 -> N˙mero digitado, 2 -> Enter com vazio, 3 -> Backspace
-;;Em caso de 1 retorna em R3 o n˙mero digitado	
+;;Retorna em R4: 1 -> N√∫mero digitado, 2 -> Enter com vazio, 3 -> Backspace
+;;Em caso de 1 retorna em R3 o n√∫mero digitado	
 Pegar_Numero_Digitado:
-	MOV #-1,R0				;INICIALIZA O N⁄MERO PAREDE COM -1 (VAZIO)
+	MOV #-1,R0				;INICIALIZA O N√öMERO PAREDE COM -1 (VAZIO)
 	MOV R0,NUMERO_PAREDE	
      Pegar_caractere_numero_parede:	
 	JSR R7,Pegar_Caracter_Digitado
-	CMP R0,ENTER_CODE			;VERIFICA SE N√O FOI ENTER
+	CMP R0,ENTER_CODE			;VERIFICA SE N√ÉO FOI ENTER
 	BEQ Enter_numero_parede			;CASO TENHA SIDO ENTER
-	CMP R0,BACKSPACE_CODE			;VERIFICA SE … BACKSPACE
+	CMP R0,BACKSPACE_CODE			;VERIFICA SE √â BACKSPACE
 	BEQ Backspace_numero_parede		;CASO TENHA SIDO BACKSPACE
 	JMP Valida_numero_parede_digitado
      Backspace_numero_parede:
 	MOV #3,R4				;RETORNA O CASO DE BACKSPACE
 	RTS R7	
      Enter_numero_parede:
-	MOV NUMERO_PAREDE,R1  			;CARREGA O N⁄MERO DA PAREDE
-	CMP R1,#-1				;VERIFICA SE … VAZIO (-1)
+	MOV NUMERO_PAREDE,R1  			;CARREGA O N√öMERO DA PAREDE
+	CMP R1,#-1				;VERIFICA SE √â VAZIO (-1)
 	BEQ Enter_com_numero_parede_vazio	
-	MOV #1, R4				;RETORNA O CASO DE N⁄MERO DIGITADO
+	MOV #1, R4				;RETORNA O CASO DE N√öMERO DIGITADO
 	RTS R7
      Enter_com_numero_parede_vazio:
         MOV #2, R4				;RETORNA O CASO DE ENTER COM VAZIO
 	RTS R7
      Valida_numero_parede_digitado:
-	CMP R0,ZERO_CODE	                ;VERIFICA SE … UM VALOR MAIOR OU IGUAL A ZERO
+	CMP R0,ZERO_CODE	                ;VERIFICA SE √â UM VALOR MAIOR OU IGUAL A ZERO
 	BMI Ignorar_entrada_numero_parede
-	CMP R0,NOVE_CODE_MAIS_UM		;VERIFICA SE O VALOR … MENOR OU IGUAL A NOVE
+	CMP R0,NOVE_CODE_MAIS_UM		;VERIFICA SE O VALOR √â MENOR OU IGUAL A NOVE
 	BPL Ignorar_entrada_numero_parede
 	JMP Imprime_numero_parede_digitado
      Ignorar_entrada_numero_parede:
-	JMP Pegar_caractere_numero_parede	;SEGUE AGUARDANDO O N⁄MERO DA PAREDE  
+	JMP Pegar_caractere_numero_parede	;SEGUE AGUARDANDO O N√öMERO DA PAREDE  
      Imprime_numero_parede_digitado:
 	MOV PUTCHAR,R5 				
 	JSR R7,H0080 				
 	;Salva a parede
-	SUB #H30,R0				;DECODIFICA N⁄MERO EM ASCII
+	SUB #H30,R0				;DECODIFICA N√öMERO EM ASCII
 	MOV NUMERO_PAREDE,R1			;CARREGA O NUMERO_PAREDE EM R1
 	CMP R1,#-1				;VERIFICA SE O ESTADO ERA VAZIO
 	BNE Atualiza_numero_parede
@@ -420,7 +419,7 @@ Pegar_Numero_Digitado:
 	ADD R2,R1				;SOMA PARA FINALIZAR A MULTIPLICACAO POR 10
 	ADD R0,R1				;ADICIONA O NOVO DIGITO
 	MOV R1,NUMERO_PAREDE			;SALVA O NUMERO DA PAREDE NOVO
-	JMP Pegar_caractere_numero_parede	;SEGUE AGUARDANDO O N⁄MERO DA PAREDE  
+	JMP Pegar_caractere_numero_parede	;SEGUE AGUARDANDO O N√öMERO DA PAREDE  
 
 Finalizar_Leitura_Parede:
 	JSR R7,Zera_Visor
@@ -446,14 +445,15 @@ Finalizar_Leitura_Parede:
 	RTS R7
 
 ;--------------------------------------------------------------------------------------
-;VARI¡VEIS
+;VARI√ÅVEIS
 
 ORG H2000
-	
-  ;FUN«’ES DO SISTEMA
+	COORDENADA_X:	        dw   0
+	COORDENADA_Y:	        dw   0
 	BOAS_CONDICOES:	        dw   0 ;Contador
 	NAO_USADOS:             dw   0 ;Contador 
 	DANIFICADOS:		dw   0 ;Contador
+  ;FUN√á√ïES DO SISTEMA
 	KBHIT:			dw   0
 	GETCHAR:		dw   1
  	PUTCHAR:		dw   2
@@ -470,15 +470,13 @@ ORG H2000
 	NUMERO_PAREDE:     	dw   0
 	LARGURA_PAREDE:		dw   0
         ALTURA_PAREDE:		dw   0
-	COORDENADA_X:	        dw   0
-	COORDENADA_Y:	        dw   0
-	LADO:			dw   0 ;1 Direita, -1 Esquerda, 0 N„o mover
+	LADO:			dw   0 ;1 Direita, -1 Esquerda, 0 N√£o mover
 	VALOR_LADRILHO:		dw   0
 
    ;DIVERSAS
 	CURSOR_PERGUNTA_PAREDE: dw   18
 ;--------------------------------------------------------------------------------------
-;C”DIGOS DE CARACTERES
+;C√ìDIGOS DE CARACTERES
 	ENTER_CODE:		dw   13
 	BACKSPACE_CODE:		dw   8
 	ZERO_CODE:	        dw   48
