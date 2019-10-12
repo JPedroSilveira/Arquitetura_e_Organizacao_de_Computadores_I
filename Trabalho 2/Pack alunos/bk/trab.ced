@@ -1,3 +1,6 @@
+;Jo„o Pedro Silveira e Silva
+;MatrÌcula: 00303397
+
 ORG H0100	
 	JSR R7,Inicializa_Variaveis_Parede
 	JSR R7,Zera_Visor
@@ -29,11 +32,9 @@ Caso_Parede_Valida:
 Esperar_Entrada_Usuario:
 	JSR R7,Pegar_Caracter_Digitado
 Verifica_Cancelamento:
-	MOV R1,C_CODE
-	CMP R0,R1				;VERIFICA SE √â A TECLA C
+	CMP R0,C_CODE				;VERIFICA SE √â A TECLA C
 	BEQ Cancelar_E_Retornar	
-	MOV R1,C_MIN_CODE	
-	CMP R0,R1				;VERIFICA SE √â A TECLA c
+	CMP R0,C_MIN_CODE			;VERIFICA SE √â A TECLA c
 	BEQ Cancelar_E_Retornar
 	JMP Verifica_Enter
 Cancelar_E_Retornar:
@@ -52,11 +53,9 @@ Iniciar_Leitura_Parede:
 	JMP Ler_Camera
 Teclado_detectado:
 	JSR R7,Pegar_Caracter_Digitado
-	MOV R1,C_CODE
-	CMP R0,R1				;VERIFICA SE √â A TECLA C
-	BEQ Cancelar_Leitura
-	MOV R1,C_MIN_CODE				
-	CMP R0,R1				;VERIFICA SE √â A TECLA c
+	CMP R0,C_CODE				;VERIFICA SE √â A TECLA C
+	BEQ Cancelar_Leitura			
+	CMP R0,C_MIN_CODE			;VERIFICA SE √â A TECLA c
 	BEQ Cancelar_Leitura
 	JMP Ler_Camera				;VOLTA AO FLUXO SE O CARACTERE FOR DIFERENTE DE C e c
 Cancelar_Leitura:
@@ -88,6 +87,92 @@ Encerrar_o_programa:
 
 ;-------------------------------------------------------------------------------------
 ;FUN√á√ïES DOS SISTEMA	
+
+
+;Utiliza como auxiliar R0,R1,R2,R3, recebe em R0 o n˙mero e retorna em R0 o PONTEIRO para a String ASCII com o n˙mero convertido
+Converte_Numero_Para_String:
+	MOV R0,NUMERO_TEMP		;Inicializa com o n˙mero de dÌgitos
+	MOV #STRING_TEMP,PONTEIRO
+	JSR R7,Contador_Digitos
+	SUB #1,R3
+	MOV #10,R1
+   Enquanto_Houver_Conversao_String:
+	JSR R7,Divisao_Destrutiva	;Utiliza o mÈtodo da divis„o por multiplos de 10 para pegar os digitos isoladamente
+	MOV PONTEIRO,R4
+	ADD R3,R4			;Posiciona cada digito na sua posiÁ„o da string baseado no n˙mero de digitos 
+	SUB #1,R4
+	ADD #48,R2 			;Realiza a convers„o do dÌgito isolado para o cÛdigo ASCII
+	MOV R2,(R4)
+	SUB #1,R3			;Subtrai contador de dÌgitos
+	BMI Fim_Conversao_String
+	JMP Enquanto_Houver_Conversao_String
+   Fim_Conversao_String:
+        MOV NUMERO_TEMP,R0		;Finaliza escrevendo 0 ao final da string
+	JSR R7,Contador_Digitos
+	MOV PONTEIRO,R4
+	ADD R3,R4
+	MOV #0,(R4)
+	MOV PONTEIRO,R0			;Retorna o ponteiro para a string tempor·ria em R0
+	RTS R7
+	
+;Recebe um valor em R0 e outro em R1, divide o primeiro pelo segundo retornando em
+;R0 o resultado e em R2 o resto.
+Divisao_Destrutiva:		
+	CMP R1,#0
+	BEQ Divisao_Por_Zero
+	BMI Divisao_Por_Negativo
+	JMP Dividir_Pt_2
+    Divisao_Por_Zero:
+	MOV #0,R0
+	MOV #0,R1
+	MOV #0,R2
+	RTS R7
+    Divisao_Por_Negativo:
+	NEG R1
+    Dividir_Pt_2:
+	MOV R0,R2
+	MOV #0,R0
+    Dividir_Pt_3:
+	SUB R1,R2
+	BEQ Fim_Divisao
+	BMI Fim_Divisao_Com_Negativo
+	ADD #1,R0
+	JMP Dividir_Pt_3
+    Fim_Divisao_Com_Negativo:
+	ADD R1,R2
+    Fim_Divisao:
+	RTS R7	
+		
+
+;Recebe um n˙mero em R0 e retorna a quantidade de digitos em R3, usa R1 como auxiliar
+Contador_Digitos:
+	MOV #0,R1
+	MOV #0,R3
+    Enquanto_Houver_Digitos:
+	ADD #1,R3
+	JSR R7,Multiplica_Por_10_Soma_9
+	CMP R0,R1
+	BMI Fim_Contagem_Digitos
+	JMP Enquanto_Houver_Digitos
+    Fim_Contagem_Digitos:
+	RTS R7
+
+
+;Recebe um valor em R1 e multiplica por 10 no final somando 9
+Multiplica_Por_10_Soma_9:
+	ADD R1,R1
+	ADD R1,R1
+	ADD R1,R1
+	ADD R1,R1
+	ADD R1,R1
+	ADD R1,R1
+	ADD R1,R1
+	ADD R1,R1
+	ADD R1,R1
+	ADD R1,R1
+	ADD #9,R1
+	RTS R7
+
 
 Espera_Movimento_Camera:
 	MOV MOVING,R5
@@ -265,8 +350,8 @@ Imprime_Coordenadas:
 	JSR R7,H0080				
 	;Imprime o X
 	MOV COORDENADA_X,R0
-	ADD #H30,R0				;CONVERTE N√öMERO PARA ASCII
-	MOV PUTCHAR,R5				
+	JSR R7,Converte_Numero_Para_String
+	MOV PUTMSG,R5				
 	JSR R7,H0080				
 	;Imprime a segunda parte da mensagem de coordenada
 	MOV #MSG_COORDENADAS_2,R0
@@ -274,8 +359,8 @@ Imprime_Coordenadas:
 	JSR R7,H0080				
 	;Imprime o Y
 	MOV COORDENADA_Y,R0
-	ADD #H30,R0				;CONVERTE N√öMERO PARA ASCII
-	MOV PUTCHAR,R5				
+	JSR R7,Converte_Numero_Para_String
+	MOV PUTMSG,R5				
 	JSR R7,H0080				
 	;Imprime a terceira parte da mensagem de coordenada
 	MOV #MSG_COORDENADAS_3,R0
@@ -343,8 +428,8 @@ Imprime_Informacoes_Parede:
 	JSR R7,H0080				
 	;Imprime o n√∫mero da parede
 	MOV NUMERO_PAREDE,R0
-	ADD #H30, R0				;CONVERTE N√öMERO PARA ASCII
-	MOV PUTCHAR,R5				
+	JSR R7,Converte_Numero_Para_String
+	MOV PUTMSG,R5				
 	JSR R7,H0080				
 	;Imprime segunda parte da mensagem com a largura
 	MOV #MSG_INFO_PAREDE_2,R0
@@ -352,8 +437,8 @@ Imprime_Informacoes_Parede:
 	JSR R7,H0080				
 	;Imprime o n√∫mero da largura
 	MOV LARGURA_PAREDE,R0
-	ADD #H30, R0				;CONVERTE N√öMERO PARA ASCII
-	MOV PUTCHAR,R5				
+	JSR R7,Converte_Numero_Para_String
+	MOV PUTMSG,R5				
 	JSR R7,H0080				
 	;Imprime segunda parte da mensagem com a altura
 	MOV #MSG_INFO_PAREDE_3,R0
@@ -361,8 +446,8 @@ Imprime_Informacoes_Parede:
 	JSR R7,H0080				
 	;Imprime o n√∫mero da altura
 	MOV ALTURA_PAREDE,R0
-	ADD #H30, R0				;CONVERTE N√öMERO PARA ASCII
-	MOV PUTCHAR,R5				
+	JSR R7,Converte_Numero_Para_String
+	MOV PUTMSG,R5				
 	JSR R7,H0080
 	RTS R7				
 
@@ -465,15 +550,30 @@ Finalizar_Leitura_Parede:
 	;Imprime o inicio da mensagem do total
 	MOV #MSG_TOTAL_1,R0
 	MOV PUTMSG,R5				
+	JSR R7,H0080	
+	;Imprime o n˙mero de bons
+	MOV BOAS_CONDICOES,R0
+	JSR R7,Converte_Numero_Para_String
+	MOV PUTMSG,R5				
 	JSR R7,H0080				
 	;Imprime a segunda parte da mensagem do total
 	MOV #MSG_TOTAL_2,R0
 	MOV PUTMSG,R5				
-	JSR R7,H0080				
+	JSR R7,H0080	
+	;Imprime o n˙mero de danificados
+	MOV DANIFICADOS,R0
+	JSR R7,Converte_Numero_Para_String
+	MOV PUTMSG,R5				
+	JSR R7,H0080			
 	;Imprime a terceira parte da mensagem do total
 	MOV #MSG_TOTAL_3,R0
 	MOV PUTMSG,R5				
-	JSR R7,H0080				
+	JSR R7,H0080	
+	;Imprime o n˙mero de vazios
+	MOV NAO_USADOS,R0
+	JSR R7,Converte_Numero_Para_String
+	MOV PUTMSG,R5				
+	JSR R7,H0080			
 	;Imprime a quarta parte da mensagem do total
 	MOV #MSG_TOTAL_4,R0
 	MOV PUTMSG,R5				
@@ -486,6 +586,11 @@ Finalizar_Leitura_Parede:
 ;VARI√ÅVEIS
 
 ORG H2000
+	TXT_VAZIOS:		dab [36]
+	TXT_DANIFICADOS:	dab [36]
+	TXT_BONS:		dab [36]
+	STRING_TEMP:		dab [36]
+	NUMERO_TEMP:            dw   0
 	COORDENADA_X:	        dw   0
 	COORDENADA_Y:	        dw   0
 	BOAS_CONDICOES:	        dw   0 ;Contador
@@ -513,6 +618,7 @@ ORG H2000
 
    ;DIVERSAS
 	CURSOR_PERGUNTA_PAREDE: dw   18
+	PONTEIRO:		dw   0
 ;--------------------------------------------------------------------------------------
 ;C√ìDIGOS DE CARACTERES
 	ENTER_CODE:		dw   13
@@ -542,5 +648,4 @@ ORG H2000
 	MSG_TOTAL_2:		dab ', danifs: ',0
 	MSG_TOTAL_3:		dab ', vazios: ',0
 	MSG_TOTAL_4:		dab '.'
-
 ;--------------------------------------------------------------------------------------	
