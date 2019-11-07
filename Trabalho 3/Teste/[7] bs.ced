@@ -1,0 +1,52 @@
+
+
+;
+_APP:		equ		h0100
+_SISTEMA:	equ		h0080
+
+_KRN_INT:	equ		h8000
+
+_reset:		equ		0
+_kbhit:		equ		2
+_getchar:	equ		4
+_putchar:	equ		6
+_putmsg:	equ		8
+_setcursor:	equ		10
+_start:		equ		12
+_ready:		equ		14
+
+
+
+BS:			equ		8
+
+
+
+		org		_APP
+		
+		
+		mov		#msg,r2
+loop:
+		mov		-1(r2),r0
+		inc		r2
+		and		#hff,r0
+		beq		fim
+		
+		mov		r2,-(r6)		
+		jsr		r7,putchar
+		mov		(r6)+,r2
+		
+		br		loop
+		
+fim:
+		hlt
+		
+msg:	dab	'123BSabc', BS, BS, BS, '---', 0
+		
+
+;-------------------------------------------------------------	
+putchar:				
+		mov		#_putchar,r5
+		jsr		r7,(_KRN_INT(r5))	
+		rts		r7
+
+

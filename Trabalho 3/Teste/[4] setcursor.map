@@ -1,0 +1,19 @@
+Símbolo         Valor Decimal   Valor Hexadecimal
+-------         -------------   -----------------
+_APP                      256                 100
+_SISTEMA                  128                  80
+_KRN_INT                32768                8000
+_RESET                      0                   0
+_KBHIT                      2                   2
+_GETCHAR                    4                   4
+_PUTCHAR                    6                   6
+_PUTMSG                     8                   8
+_SETCURSOR                 10                   A
+_START                     12                   C
+_READY                     14                   E
+BS                          8                   8
+TST_CURSOR_CLEAR          268                 10C
+TST_CURSOR_LOOP           294                 126
+TC                        333                 14D
+SETCURSOR                 349                 15D
+PUTCHAR                   358                 166

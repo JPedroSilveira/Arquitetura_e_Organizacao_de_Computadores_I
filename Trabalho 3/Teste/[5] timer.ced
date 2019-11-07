@@ -1,0 +1,73 @@
+
+
+;
+_APP:		equ		h0100
+_SISTEMA:	equ		h0080
+
+_KRN_INT:	equ		h8000
+
+_reset:		equ		0
+_kbhit:		equ		2
+_getchar:	equ		4
+_putchar:	equ		6
+_putmsg:	equ		8
+_setcursor:	equ		10
+_start:		equ		12
+_ready:		equ		14
+
+
+
+BS:			equ		8
+
+
+
+		org		_APP
+
+		mov		#'0',-(r6)
+		
+loop:
+		mov		0(r6),r0
+		jsr		r7,putchar
+		
+		jsr		r7,wait_1s
+		
+		inc		0(r6)
+		cmp		0(r6),#'9'
+		ble		loop
+		
+		mov		#'!',r0
+		jsr		r7,putchar
+		
+		hlt
+		
+wait_1s:
+		mov		#1000,r0
+		jsr		r7,start
+		
+loop_1s:
+		jsr		r7,ready
+		tst		r0
+		beq		loop_1s
+		
+		rts		r7
+		
+		
+;-------------------------------------------------------------	
+putchar:				
+		mov		#_putchar,r5
+		jsr		r7,(_KRN_INT(r5))	
+		rts		r7
+		
+;-------------------------------------------------------------	
+start:
+		mov		#_start,r5
+		jsr		r7,(_KRN_INT(r5))	
+		rts		r7
+	
+;-------------------------------------------------------------	
+ready:
+		mov		#_ready,r5
+		jsr		r7,(_KRN_INT(r5))
+		rts		r7
+		
+		

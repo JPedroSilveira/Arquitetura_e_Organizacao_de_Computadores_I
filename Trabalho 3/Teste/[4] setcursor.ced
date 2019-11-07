@@ -1,0 +1,75 @@
+
+
+;
+_APP:		equ		h0100
+_SISTEMA:	equ		h0080
+
+_KRN_INT:	equ		h8000
+
+_reset:		equ		0
+_kbhit:		equ		2
+_getchar:	equ		4
+_putchar:	equ		6
+_putmsg:	equ		8
+_setcursor:	equ		10
+_start:		equ		12
+_ready:		equ		14
+
+
+
+BS:			equ		8
+
+
+
+		org		_APP
+		
+
+		mov		#0,r0
+		jsr		r7,setcursor
+		
+		mov		#36,-(r6)
+tst_cursor_clear:
+		mov		#' ',r0
+		jsr		r7,putchar
+		dec		0(r6)
+		bne		tst_cursor_clear
+		add		#2,r6
+		
+		mov		#tc,-(r6)	; 2(r6) -> ponteiro
+		mov		#'0',-(r6)	; 0(r6) -> contador
+		
+tst_cursor_loop:
+		mov		(2(r6)),r0
+		jsr		r7,setcursor
+		
+		mov		0(r6),r0
+		jsr		r7,putchar
+		
+		add		#2,2(r6)
+		inc		0(r6)
+		
+		cmp		0(r6),#'8'
+		blt		tst_cursor_loop
+		
+		add		#4,r6
+	
+		hlt
+
+;-------------------------------------------------------------	
+;	Coloca um padrão específico no visor
+;	Usa setcursor para gerar esse padrão, colocado no visor na ordem dos numeros
+;	"6    4    2    5    3    1    0    7"
+;-------------------------------------------------------------	
+tc:		daw		30, 25, 10, 20, 5, 15, 0, 35
+
+;-------------------------------------------------------------	
+setcursor:		
+		mov		#_setcursor,r5
+		jsr		r7,(_KRN_INT(r5))	
+		rts		r7
+		
+;-------------------------------------------------------------	
+putchar:
+		mov		#_putchar,r5
+		jsr		r7,(_KRN_INT(r5))	
+		rts		r7

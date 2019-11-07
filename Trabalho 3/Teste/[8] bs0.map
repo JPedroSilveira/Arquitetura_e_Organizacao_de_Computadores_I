@@ -1,0 +1,18 @@
+Símbolo         Valor Decimal   Valor Hexadecimal
+-------         -------------   -----------------
+_APP                      256                 100
+_SISTEMA                  128                  80
+_KRN_INT                32768                8000
+_RESET                      0                   0
+_KBHIT                      2                   2
+_GETCHAR                    4                   4
+_PUTCHAR                    6                   6
+_PUTMSG                     8                   8
+_SETCURSOR                 10                   A
+_START                     12                   C
+_READY                     14                   E
+BS                          8                   8
+LOOP                      260                 104
+FIM                       282                 11A
+MSG                       283                 11B
+PUTCHAR                   307                 133

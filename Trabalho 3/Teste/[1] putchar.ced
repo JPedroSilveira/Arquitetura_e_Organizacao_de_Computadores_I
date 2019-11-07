@@ -1,0 +1,50 @@
+
+
+;
+_APP:		equ		h0100
+_SISTEMA:	equ		h0080
+
+_KRN_INT:	equ		h8000
+
+_reset:		equ		0
+_kbhit:		equ		2
+_getchar:	equ		4
+_putchar:	equ		6
+_putmsg:	equ		8
+_setcursor:	equ		10
+_start:		equ		12
+_ready:		equ		14
+
+
+BS:			equ		8
+
+
+		org		_APP
+
+
+;-------------------------------------------------------------	
+		mov		#'I',r0
+		jsr		r7,putchar
+		mov		#'N',r0
+		jsr		r7,putchar
+		mov		#'F',r0
+		jsr		r7,putchar
+		mov		#' ',r0
+		jsr		r7,putchar
+		mov		#'1',r0
+		jsr		r7,putchar
+		mov		#'0',r0
+		jsr		r7,putchar
+		mov		#'8',r0
+		jsr		r7,putchar
+		
+here:	br		here		
+		
+		hlt
+
+;-------------------------------------------------------------	
+putchar:
+		mov		#_putchar,r5
+		jsr		r7,(_KRN_INT(r5))	
+		rts		r7
+
