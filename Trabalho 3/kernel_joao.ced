@@ -1,0 +1,454 @@
+;
+;
+;******************************************************************************
+;
+;	Arquivo de Referência para iniciar o desenvolvimento do kernel
+;
+;	versão: 2019.2
+;
+;	Áreas de memória
+;
+;	8000 - FF7F		_KRN_INT
+;					Área de Kernel para implementação dos alunos
+;
+;	FF80 - FFBF 	_IOAREA16
+;					Area de perifericos, acessada na base 16 bits
+;
+;	FFC0 - FFFF		_IOAREA08
+;					Area de perifericos, acessada na base 8 bits
+;					
+;******************************************************************************
+
+_APP:		equ	h0100
+_KRN_INT:	equ	h8000
+_IOAREA16:	equ	hFF80
+_IOAREA08:	equ	hFFC0
+
+
+;
+;------------------------------------------------------------------------------
+;	Área reservada para os periféricos
+;------------------------------------------------------------------------------
+
+; Acesso em 16 bits
+	org	_IOAREA16
+STACK:	daw	[31]
+IVET:	dw	0			; Vetor de interrupção
+
+; Acesso em 8 bits
+	org	_IOAREA08
+	dab	[23]
+TIMDT:	db	0			; Registro de programação do timer
+INTS:	db	0			; INTERRUPT STATUS: IP x x x . x x IPStec IPStim
+INTE:	db	0			; INTERRUPT ENABLE: IE x x x . x x IEStec IEStim
+TECST:	db	0			; Status do teclado
+TECDT:	db	0			; Dado do teclado
+VISOR:	dab	[36]			; Portas de acesso ao visor
+
+CR:			equ	H0D
+BS:			equ	H08
+
+
+		
+	
+;
+;------------------------------------------------------------------------------
+;	Area para o kernel
+;	Inicialização (reset)
+;	Implementacao dos tratadores de interrupcao
+;	Funções para usa do aplicação
+;------------------------------------------------------------------------------
+		org		_KRN_INT
+Vet_0:	dw		_reset
+Vet_1:	dw		_kbhit
+Vet_2:	dw		_getchar
+Vet_3:	dw		_putchar
+Vet_4:	dw		_putmsg
+Vet_5:	dw		_setcursor
+Vet_6:	dw		_start
+Vet_7:	dw		_ready
+	
+
+CURSOR:	 dw    		0		; Define a posição do cursor
+TICK_COUNT: dw		0		; Contador do timer
+TEMP: dw		0		; Variável temporária
+TEMP_MSG: dw		0		; Variável temporária
+CURSOR_MODE: dw		0		; Variavel que definife se o cursor esta visivel quando exibido
+CURSOR_COUNT: dw		0		; Contador do tempo de exibicao cursor
+CURSOR_TIME: dw		0		; Define o tempo de exibicao do cursor em ms
+CURSOR_MODE_ON: equ		1		; Modo do cursor ativo
+CURSOR_MODE_OFF: equ		0		; Modo do cursor escondido
+TEMP_CHAR: dw		0		; Guarda o char sob o cursor
+WRITE_CHAR: dw		0		; Guarda o char digitado
+;------------------------------------------------------------------------------
+;	Código de RESET (BOOT) do processador/interrupção
+;------------------------------------------------------------------------------
+_reset:
+; 1) Desabilitar o sistema de interrupções
+	CLR     INTE   
+; 2) Inicializar o stack pointer (SP = R6)
+	MOV 	#STACK,R6
+; 3) Inicializar as variáveis internas usadas pelo sistema de interrupções (IVET, INTE, etc.)
+	CLR	INTS
+	CLR     TECDT
+	MOV	#1,TIMDT
+; 4) Inicializar as variáveis internas do kernel
+	MOV     #0,CURSOR
+	MOV 	#0,TICK_COUNT
+	MOV	#0,CURSOR_COUNT
+	MOV	#0,CURSOR_MODE
+	MOV	#0,WRITE_CHAR
+	MOV	#500,CURSOR_TIME	;INICIALIZA O TEMPO DO CURSOR COM 500ms PARA CADA ESTADO
+	MOV	#' ',TEMP_CHAR		;LIMPA VARIAVEL TEMPORARIA
+; 5) Inicializar o teclado zerando o byte de estado (TECST, endereço 65498)
+	CLR 	TECST
+; 6) Inicializar o timer
+	MOV	#ISR,IVET
+; 7) Limpar o visor
+	JSR 	R7,_clear_visor
+; 8) Habilitar interrupções
+	MOV 	#h83,INTE
+; 9) Retornar para o programa de aplicação com um desvio para o endereço H0100 da memória
+	JMP	_APP
+
+	
+
+;------------------------------------------------------------------------------
+;	CLEAR_VISOR(void)
+;
+;Funçao:
+;	Limpa o visor do inicio ao fim
+;	Retorna o cursor para o inicio do visor
+;------------------------------------------------------------------------------
+_clear_visor:
+	MOV #0,CURSOR
+	MOV #' ',TEMP_CHAR
+clear_visor_step:	
+	MOV CURSOR,R0
+	CMP R0,#36
+	BPL fim_clear_visor	;COMPARA CURSOR COM 35, SE FOR POSITIVO PARA
+	ADD #VISOR,R0
+	MOV TEMP_CHAR,(R0)
+	INC CURSOR
+	JMP clear_visor_step
+fim_clear_visor:
+	MOV #0,CURSOR
+	RTS R7
+
+;------------------------------------------------------------------------------
+;	BOOL kbhit(void)
+;
+;Funçao:
+;	Informa se alguma tecla foi digitada.
+;	Não bloqueia esperando pelo teclado.
+;Retorna:
+;	Se R0==0, não há tecla
+;	Se R0!=0, há tecla
+;------------------------------------------------------------------------------
+_kbhit:
+	CMP	TECST,#H80
+	BNE     kbhit_false
+	JMP 	kbhit_true
+kbhit_true:
+	MOV 	#1,R0
+	JMP     kbhit_fim
+kbhit_false:
+	MOV	#0,R0
+kbhit_fim:
+	RTS	R7
+
+	
+;------------------------------------------------------------------------------
+;	CHAR	getchar(void)
+;
+;Funçao:
+;	Bloqueia aguardando que alguma tecla seja digitada.
+;	Se já houver uma tecla digitada, retorna a tecla imediatamente.
+;	Essa função não coloca os caracteres digitados no visor.
+;Retorna:
+;	R0 == tecla digitada
+;------------------------------------------------------------------------------
+_getchar:
+	MOV	  #0,WRITE_CHAR
+	JSR	R7,aux_getchar
+	RTS	R7
+
+aux_getchar:
+	TST	WRITE_CHAR
+	BEQ	aux_getchar
+	RTS	R7
+
+	
+;------------------------------------------------------------------------------
+;	VOID	putchar(char)
+;
+;Funçao:
+;	Escreve um caractere no visor, na posição do cursor.
+;	Incrementa a posição do cursor, se for um caractere visível.
+;		-> Se a posição do cursor for maior do que 35, o cursor deve desaparecer.
+;	Decrementa a posição do cursor, se o caractere for um BS (Back-Space, ASCI H08).
+;		-> Ignora o BS, caso a posição do cursor seja 0
+;	
+;Entra:
+;	R0 == código ASCII do caractere a ser colocado no visor
+;------------------------------------------------------------------------------
+_putchar:
+	CLR	INTE			;Para interrupção
+	MOV     R0,TEMP			
+	CMP 	R0,#8			; if (caracter_novo == backspace)
+	BEQ	putchar_backspace 	
+	JMP 	putchar_no_backspace	; else
+	
+	
+putchar_backspace:
+	TST	CURSOR			;if (CURSOR!=0) {
+	BEQ	putchar_backspace_invalid
+	CMP 	CURSOR,#36		;if (CURSOR<36) {
+	BPL	putchar_backspace_out
+	JMP     putchar_backspace_in
+putchar_backspace_out:		
+	DEC	CURSOR			;	CURSOR--
+	MOV    	CURSOR,R0		;	R0 = &VISOR[CURSOR--]
+	ADD     #VISOR,R0
+	MOV	(R0),TEMP_CHAR		
+	JMP	putchar_end		;else {
+putchar_backspace_in:
+	MOV    	CURSOR,R0		;	R0 = &VISOR[CURSOR--]
+	ADD     #VISOR,R0	
+	MOV	TEMP_CHAR,(R0)		;	*R0 = TEMP_CHAR
+	DEC	CURSOR			;		
+	DEC	R0			;	R0--
+	MOV	(R0),TEMP_CHAR		;	TEMP_CHAR = *R0
+	JMP	putchar_end		; }
+	
+	
+putchar_backspace_invalid:
+	JMP	putchar_end		; return
+	
+;--------------------
+	
+putchar_no_backspace:
+	CMP 	CURSOR,#36			; IF (CURSOR >= 36 ) return
+	BPL	putchar_no_backspace_invalid
+	JMP	putchar_no_backspace_valid
+putchar_no_backspace_invalid:
+	JMP	putchar_end
+	
+putchar_no_backspace_valid:	
+	MOV    	CURSOR,R0			; R0 = &VISOR[CURSOR]
+	ADD     #VISOR,R0
+	MOV 	TEMP,(R0)			; *R0++ = caractere
+	INC	R0
+	INC 	CURSOR				; CURSOR++
+	CMP 	CURSOR,#36			; if CURSOR==36 TEMP_CHAR=" ": return
+	BEQ	putchar_clean_temp_char
+	JMP	putchar_save_temp_char
+
+putchar_clean_temp_char:
+	MOV	#' ',TEMP_CHAR			; TEMP_CHAR = ' '
+	JMP	putchar_end			; return
+	
+putchar_save_temp_char:
+	MOV	(R0),TEMP_CHAR			; TEMP_CHAR = *R0
+	JMP	putchar_end			; return
+putchar_end:
+	MOV	#h83,INTE			; Liga interrupção
+	RTS	R7
+
+	
+;------------------------------------------------------------------------------
+;	VOID	putmsg(char *)
+;
+;Funçao:
+;	Escreve um string no visor, a partir da posição do cursor.
+;	Um string é uma sequencia de bytes terminada pelo byte H00.
+;	Ajusta o cursor, para cada caractere do string, da mesma forma como descrito na função putchar.
+;Entra:
+;	R0 == endereço do string
+;------------------------------------------------------------------------------
+_putmsg:	
+	MOV     R0,TEMP_MSG		;*TEMP_MSG = R0 (Entrada)
+_putmsg_loop:				;DO{ 
+	MOV 	TEMP_MSG,R0	 	;	R0-- = TEMP_MSG
+	DEC	R0			
+	MOV     (R0),R0			;	R0 = *R0
+	AND	#h00ff,R0		
+	TST     R0			;	if (!R0) {
+	BEQ	_putmsg_fim		; 		return 
+					;	}
+	JSR     R7,_putchar		;	_putchar(R0)
+	INC     TEMP_MSG		;	TEMP_MSG ++
+	JMP 	_putmsg_loop		;WHILE(R0 != '\0');
+_putmsg_fim:
+	RTS	R7			;return
+	
+;------------------------------------------------------------------------------
+;	void setcursor(short pos)
+;
+;Funçao:
+;	Altera a posição do cursor, representado pelo caractere “_”.
+;	Para isso, apaga o cursor da sua posição atual no visor e escreve o cursor na nova posição.
+;	Caso o novo valor seja maior do que 35, o cursor deverá “desaparecer”.
+;Entra:
+;	R0 = nova posição do cursor
+;------------------------------------------------------------------------------
+_setcursor:
+	CLR	INTE		;PARA INTERRUPCAO
+	MOV	R0,TEMP		;TEMP = pos
+	MOV    	CURSOR,R0	
+	ADD     #VISOR,R0	;R0 = &VISOR[CURSOR]
+	CMP	(R0),#' '	;if (R0 != ' ') {
+	BNE     setcursor_cursor;
+	JMP	setcursor_end	
+setcursor_cursor:		;
+	MOV	#' ',(R0)	;	R0 = ' '
+	JMP	setcursor_end	; 	return
+setcursor_end:			;else {
+	MOV     TEMP,CURSOR	;	CURSOR = TEMP	
+	MOV	#' ',TEMP_CHAR	;	TEMP_CHAR = ' '
+	MOV	#h83,INTE	;	;REINICIA INTERRUPCAO
+	RTS	R7		;return
+
+		
+;------------------------------------------------------------------------------
+;	void	start (short valor)
+;
+;Funçao:
+;	Inicializa uma temporização
+;	Se for chamada, novamente, antes do tempo atingir o seu final, um novo tempo será programado.
+;	Essa função deve ser usada em conjunto com a função _ready
+;Entra:
+;	R0 = valor do tempo, em milisegundos
+;------------------------------------------------------------------------------
+_start:
+	CLR	INTE
+	MOV 	R0,TICK_COUNT	
+	MOV	#h83,INTE
+	RTS	R7
+		
+
+;------------------------------------------------------------------------------
+;	bool ready(void)
+;
+;Funçao:
+;	Informa se o tempo programado pela função _start esgotou-se.
+;Retorna:
+;	R0==0, se o tempo programado não se esgotou.
+;	R0<>0, se o tempo programado estogou-se
+;------------------------------------------------------------------------------
+_ready:
+	CLR	INTE
+	TST	TICK_COUNT
+	BEQ	_ready_true
+	JMP     _ready_false
+_ready_true:
+	MOV     #1,R0
+	MOV	#h83,INTE
+	RTS	R7
+_ready_false:
+	MOV     #0,R0
+	MOV	#h83,INTE
+	RTS	R7
+
+
+;-------------------------------------------------------------------------------------
+; Rotina de INTERRUPÇÃO
+; Só será chamada se as interrupções estiverem habilitadas
+ISR:
+	MOV		R0,-(R6)	; Salva registradores na pilha
+	MOV		R1,-(R6)
+	MOV		R2,-(R6)
+	MOV		R3,-(R6)
+	MOV		R4,-(R6)
+	MOV		R5,-(R6)
+
+	MOV		#0,R0
+	MOV		INTS,R0		; Verifica se a interrupção é do TIMER
+	AND		#1,R0
+	CMP		R0,#1
+	BEQ		ISR_TIMER	; Se nao, nao faz nada
+	MOV		INTS,R0		; Verifica se a interrupção é do TIMER
+	AND		#2,R0
+	BEQ		ISR_TEC		; Se nao, nao faz nada
+	JMP		ISR_END
+
+ISR_TEC:
+	HLT
+	MOV		TECDT,WRITE_CHAR
+	CLR 		TECDT
+	CLR		TECST		
+	JMP		ISR_END
+	
+ISR_TIMER:
+	TST		TICK_COUNT	; Verifica o contador do timer
+	BNE		TICK_COUNT_DEC	; Se nao for zero decrementa
+	JMP		ISR_CURSOR	; Trata o cursor
+TICK_COUNT_DEC:
+	DEC		TICK_COUNT
+	JMP		ISR_CURSOR	; Trata o cursor
+	
+	
+ISR_CURSOR:
+	CMP 		CURSOR,#36	; Verifica se o cursor esta sendo exibido
+	BPL		ISR_CURSOR_OUT	; Caso do cursor não exibido
+	JMP		ISR_CURSOR_IN	; Caso do cursor sendo exibido
+
+ISR_CURSOR_OUT:
+	JMP		ISR_TIME_END
+	
+ISR_CURSOR_IN:
+	MOV 		CURSOR_COUNT,R0
+	CMP		R0,CURSOR_TIME		; Verifica se está no tempo de mudanca
+	BPL		CURSOR_MODE_CHANGE	; Muda o modo de exibicao
+	JMP		CURSOR_MODE_EXECUTE	; Executa o modo de exibicao
+
+
+CURSOR_MODE_CHANGE:
+	MOV		#0,CURSOR_COUNT
+	MOV		CURSOR_MODE,R0
+	CMP		R0,#CURSOR_MODE_ON	;Verifica modo ativo
+	BEQ		CURSOR_MODE_GO_TO_OFF	;Muda para inativo
+	JMP		CURSOR_MODE_GO_TO_ON	;Muda para ativo
+CURSOR_MODE_GO_TO_OFF:
+	MOV		#CURSOR_MODE_OFF,R0
+	MOV		R0,CURSOR_MODE
+	JMP		ISR_TIME_END
+CURSOR_MODE_GO_TO_ON:
+	MOV		#CURSOR_MODE_ON,R0
+	MOV		R0,CURSOR_MODE
+	JMP		ISR_TIME_END
+	
+CURSOR_MODE_EXECUTE:
+	INC		CURSOR_COUNT		;Incrementa o contador de ms
+	MOV 		CURSOR_MODE,R0
+	CMP		R0,#CURSOR_MODE_ON	;Verifica modo ativo
+	BEQ		CURSOR_MODE_EXECUTE_OFF	;Muda para inativo
+	JMP		CURSOR_MODE_EXECUTE_ON	;Muda para ativo
+	
+CURSOR_MODE_EXECUTE_OFF:
+	MOV		CURSOR,R0
+	ADD		#VISOR,R0
+	MOV		TEMP_CHAR,(R0)
+	JMP		ISR_TIME_END
+	
+CURSOR_MODE_EXECUTE_ON:
+	MOV		CURSOR,R0
+	ADD		#VISOR,R0
+	MOV		#'_',(R0)
+	JMP		ISR_TIME_END
+	
+ISR_TIME_END:
+	AND		#hFFFE,INTS	; Desliga bit de interrupção TIMER
+ISR_END:
+	MOV		(R6)+,R5	; Retorna os registradores da pilha
+	MOV		(R6)+,R4	
+	MOV		(R6)+,R3
+	MOV		(R6)+,R2
+	MOV		(R6)+,R1
+	MOV		(R6)+,R0
+
+	RTI				; Return From Interrupt				
+		
+;
+;**************************************************************************************************
+
