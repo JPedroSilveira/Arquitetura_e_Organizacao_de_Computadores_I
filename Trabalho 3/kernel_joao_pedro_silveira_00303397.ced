@@ -107,7 +107,7 @@ _reset:
 ; 7) Limpar o visor
 	JSR 	R7,_clear_visor
 ; 8) Habilitar interrupções
-	MOV 	#h83,INTE
+	MOV 	#h81,INTE
 ; 9) Retornar para o programa de aplicação com um desvio para o endereço H0100 da memória
 	JMP	_APP
 
@@ -169,13 +169,11 @@ kbhit_fim:
 ;	R0 == tecla digitada
 ;------------------------------------------------------------------------------
 _getchar:
-	MOV	  #0,WRITE_CHAR
-	JSR	R7,aux_getchar
-	RTS	R7
-
-aux_getchar:
-	TST	WRITE_CHAR
-	BEQ	aux_getchar
+	CMP	TECST,#H80
+	BNE	_getchar
+	MOV	TECDT,R0
+	CLR 	TECDT
+	CLR	TECST
 	RTS	R7
 
 	
@@ -252,7 +250,7 @@ putchar_save_temp_char:
 	MOV	(R0),TEMP_CHAR			; TEMP_CHAR = *R0
 	JMP	putchar_end			; return
 putchar_end:
-	MOV	#h83,INTE			; Liga interrupção
+	MOV	#h81,INTE			; Liga interrupção
 	RTS	R7
 
 	
@@ -306,7 +304,7 @@ setcursor_cursor:		;
 setcursor_end:			;else {
 	MOV     TEMP,CURSOR	;	CURSOR = TEMP	
 	MOV	#' ',TEMP_CHAR	;	TEMP_CHAR = ' '
-	MOV	#h83,INTE	;	;REINICIA INTERRUPCAO
+	MOV	#h81,INTE	;	;REINICIA INTERRUPCAO
 	RTS	R7		;return
 
 		
@@ -323,7 +321,7 @@ setcursor_end:			;else {
 _start:
 	CLR	INTE
 	MOV 	R0,TICK_COUNT	
-	MOV	#h83,INTE
+	MOV	#h81,INTE
 	RTS	R7
 		
 
@@ -343,11 +341,11 @@ _ready:
 	JMP     _ready_false
 _ready_true:
 	MOV     #1,R0
-	MOV	#h83,INTE
+	MOV	#h81,INTE
 	RTS	R7
 _ready_false:
 	MOV     #0,R0
-	MOV	#h83,INTE
+	MOV	#h81,INTE
 	RTS	R7
 
 
@@ -372,11 +370,7 @@ ISR:
 	BEQ		ISR_TEC		; Se nao, nao faz nada
 	JMP		ISR_END
 
-ISR_TEC:
-	HLT
-	MOV		TECDT,WRITE_CHAR
-	CLR 		TECDT
-	CLR		TECST		
+ISR_TEC:	
 	JMP		ISR_END
 	
 ISR_TIMER:
