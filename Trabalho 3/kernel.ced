@@ -79,9 +79,11 @@ TEMP_END:
 COUNT_CURSOR:
 	dw		0		; Contagem de tempo para o pisca do cursor
 CURSOR_TIMER_MODE:
-	dw		0		; Modo cursor exibido ou apagado
+	dw		1		; Modo cursor exibido ou apagado
 TIMER_CURSOR:
-	dw		0		; Tempo para apagar ou ligar o cursor
+	dw		500		; Tempo para apagar ou ligar o cursor
+TIME_INT_COUNT:
+	dw		0
 
 ;-------------------------------------------------------------------------------------
 ;	Código de RESET (BOOT) do processador/interrupção
@@ -91,19 +93,20 @@ _reset:
 	CLR 	TECST
 	CLR     TECDT
 	CLR     INTE     
-	MOV	#1,TIMDT
 	MOV 	#STACK,R6
-	MOV	#ISR,IVET
-	MOV	#h81,INTE
 	MOV     #0,CURSOR
 	MOV 	#0,TICK_COUNT
-	MOV	#0,COUNT_CURSOR
 	MOV	#500,TIMER_CURSOR
+	MOV	#1,CURSOR_TIMER_MODE
+	MOV	#ISR,IVET
+	MOV	#1,TIMDT
+	MOV	#h81,INTE
 	JSR 	R7,_clear_visor
 	JMP	_APP
 	
 ;-------------------------------------------------------------------------------------
 _clear_visor:
+	CLR INTE
 	MOV #0,CURSOR
 _clear_visor_step:	
 	MOV CURSOR,R0
@@ -115,6 +118,11 @@ _clear_visor_step:
 	JMP _clear_visor_step
 _fim_clear_visor:
 	MOV #0,CURSOR
+	MOV CURSOR,R0
+	ADD #VISOR,R0
+	MOV #'_',(R0)
+	MOV #1,CURSOR_TIMER_MODE
+	MOV #h81,INTE
 	RTS R7
 
 
@@ -129,6 +137,7 @@ _fim_clear_visor:
 ;	Se R0!=0, há tecla
 ;-------------------------------------------------------------------------------------
 _kbhit:
+	CLR	INTE
 	CMP	TECST,#H80
 	BNE     kbhit_false
 	JMP 	kbhit_true
@@ -138,6 +147,7 @@ kbhit_true:
 kbhit_false:
 	MOV	#0,R0
 kbhit_fim:
+	MOV	#h81,INTE
 	RTS	R7
 
 	
@@ -152,9 +162,12 @@ kbhit_fim:
 ;	R0 == tecla digitada
 ;-------------------------------------------------------------------------------------
 _getchar:
+	CLR	INTE
 	JSR	R7,aux_getchar
 	MOV	TECDT,R0
 	CLR 	TECDT
+	CLR	TECST
+	MOV	#h81,INTE
 	RTS	R7
 
 aux_getchar:
@@ -187,7 +200,8 @@ _putchar_no_backspace:
 	CMP 	CURSOR,#36		;Verifica se o Cursor alcancou seu limite
 	BPL	_putchar_end_cursor
 	JMP	_putchar_pt_2
-_putchar_end_cursor:
+_putchar_end_cursor:	
+	MOV 	#0,CURSOR_TIMER_MODE
 	JMP	_putchar_end	
 _putchar_pt_2:
 	MOV    	CURSOR,R0
@@ -198,6 +212,7 @@ _putchar_pt_2:
 	BPL	_putchar_pt_2_end_cursor
 	JMP	_putchar_print_end
 _putchar_pt_2_end_cursor:
+	MOV 	#0,CURSOR_TIMER_MODE
 	JMP	_putchar_end		
 _putchar_backspace_pt_2:
 	MOV    	CURSOR,R0
@@ -205,17 +220,15 @@ _putchar_backspace_pt_2:
 	MOV	#' ',(R0)
 	DEC	CURSOR
 	JMP	_putchar_print_end		
-_putchar_erase_backspace:
-	MOV	#' ',(R0)
-	JMP	_putchar_end
 _putchar_print_end:
 	MOV    	CURSOR,R0
 	ADD     #VISOR,R0
 	MOV 	#'_',(R0)
+	MOV	#1,CURSOR_TIMER_MODE
 	JMP	_putchar_end	
 _putchar_end:
-	MOV	#h81,INTE
-	RTS	R7			;Ativa interrupção	
+	MOV	#h81,INTE		;Re-ativa interrupção	
+	RTS	R7			
 
 	
 ;-------------------------------------------------------------------------------------
@@ -255,20 +268,26 @@ _putmsg_fim:
 ;	R0 = nova posição do cursor
 ;-------------------------------------------------------------------------------------
 _setcursor:
+	CLR	INTE
 	MOV	R0,TEMP
 	MOV	CURSOR,R0
 	CMP	R0,#36
 	BPL	_setcursor_pt_2	;COMPARA CURSOR COM 35, SE FOR POSITIVO PARA
 	ADD	#VISOR,R0
-	MOV	#0,(R0)
+	MOV	#' ',(R0)
 _setcursor_pt_2:
 	MOV 	TEMP,R0
 	CMP	R0,#36
-	BPL	_setcursor_fim	;COMPARA CURSOR COM 35, SE FOR POSITIVO PARA
+	BPL	_setcursor_empty_end	;COMPARA CURSOR COM 35, SE FOR POSITIVO PARA
 	ADD	#VISOR,R0
 	MOV	#'_',(R0)
-_setcursor_fim:
+	MOV	#1,CURSOR_TIMER_MODE
+	JMP	_setcursor_end
+_setcursor_empty_end:
+	MOV	#0,CURSOR_TIMER_MODE
+_setcursor_end:
 	MOV 	TEMP,CURSOR
+	MOV	#h81,INTE
 	RTS	R7
 		
 
@@ -284,6 +303,8 @@ _setcursor_fim:
 ;	R0 = valor do tempo, em milisegundos
 ;-------------------------------------------------------------------------------------
 _start:
+	HLT
+	CLR	INTE
 	MOV 	R0,TICK_COUNT	
 	MOV	#h81,INTE
 	RTS	R7
@@ -298,14 +319,18 @@ _start:
 ;	R0<>0, se o tempo programado estogou-se
 ;-------------------------------------------------------------------------------------
 _ready:
+	HLT
+	CLR	INTE
 	TST	TICK_COUNT
 	BEQ	_ready_true
 	JMP     _ready_false
 _ready_true:
 	MOV     #1,R0
+	MOV	#h81,INTE
 	RTS	R7
 _ready_false:
 	MOV     #0,R0
+	MOV	#h81,INTE
 	RTS	R7
 
 
@@ -332,43 +357,51 @@ ISRTim_dec:
 ISR_return_rec:
 	JMP		ISR_return
 ISR_2:
-	TST		CURSOR_TIMER_MODE
+	MOV		CURSOR_TIMER_MODE,R0
+	CMP		R0,#1
 	BEQ		ERASE_CURSOR
-	JMP		DRAW_CURSOR	
+	CMP		R0,#2
+	BEQ		DRAW_CURSOR
+	MOV    		CURSOR,R0
+	ADD     	#VISOR,R0
+	CMP		#'_',(R0)
+	BEQ		ISR_3
+	JMP		ISR_return_timer
+ISR_3:
+	MOV		#1,CURSOR_TIMER_MODE
+	JMP		ISR_return_timer
 ERASE_CURSOR:
 	INC		COUNT_CURSOR
-	CMP		COUNT_CURSOR,TIMER_CURSOR
-	BEQ		ERASE_CURSOR_END
+	CMP		COUNT_CURSOR,#5
+	BPL		ERASE_CURSOR_END
+	JMP		ERASE_CURSOR_2
+ERASE_CURSOR_END:
+	HLT
+	MOV		#0,COUNT_CURSOR
+	MOV		#2,CURSOR_TIMER_MODE
+	JMP		ISR_return_timer
+ERASE_CURSOR_2:
 	MOV    		CURSOR,R0
 	ADD     	#VISOR,R0
-	CMP		(R0),#'_'
-	BEQ		ERASE_CURSOR_2
-	JMP		ISR_return
-ERASE_CURSOR_END:
-	MOV		#1,CURSOR_TIMER_MODE
-	MOV		#0,COUNT_CURSOR
-	JMP		ISR_return
-ERASE_CURSOR_2:
 	MOV		#' ',(R0)
-	JMP		ISR_return
+	JMP		ISR_return_timer
 DRAW_CURSOR:
 	INC		COUNT_CURSOR
-	CMP		COUNT_CURSOR,TIMER_CURSOR
-	BEQ		DRAW_CURSOR_END	
+	CMP		COUNT_CURSOR,#500
+	BPL		DRAW_CURSOR_END	
+	JMP		DRAW_CURSOR_2
+DRAW_CURSOR_END:
+	MOV		#0,COUNT_CURSOR
+	MOV		#1,CURSOR_TIMER_MODE
+	JMP		ISR_return_timer
+DRAW_CURSOR_2:
 	MOV    		CURSOR,R0
 	ADD     	#VISOR,R0
-	CMP		(R0),#' '
-	BEQ		DRAW_CURSOR_2
-	JMP		ISR_return
-DRAW_CURSOR_END:
-	MOV		#0,CURSOR_TIMER_MODE
-	MOV		#0,COUNT_CURSOR
-	JMP		ISR_return
-DRAW_CURSOR_2:
 	MOV		#'_',(R0)
-	JMP		ISR_return
-ISR_return:
+	JMP		ISR_return_timer
+ISR_return_timer:
 	AND		#hFFFE,INTS	; Desliga bit de interrupção TIMER
+ISR_return:
 	MOV		(R6)+,R5	; Retorna os registradores da pilha
 	MOV		(R6)+,R4	
 	MOV		(R6)+,R3
