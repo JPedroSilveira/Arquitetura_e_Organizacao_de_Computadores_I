@@ -76,7 +76,7 @@ TEMP_MSG: dw		0		; Variável temporária
 CURSOR_MODE: dw		0		; Variavel que definife se o cursor esta visivel quando exibido
 CURSOR_COUNT: dw		0		; Contador do tempo de exibicao cursor
 CURSOR_TIME: dw		0		; Define o tempo de exibicao do cursor em ms
-TEMP_CHAR: db		0		; Guarda o char sob o cursor
+TEMP_CHAR: dw		0		; Guarda o char sob o cursor
 CURSOR_MODE_ON: equ		1		; Modo do cursor ativo
 CURSOR_MODE_OFF: equ		0		; Modo do cursor escondido
 ;------------------------------------------------------------------------------
@@ -218,12 +218,12 @@ putchar_backspace_in_with:
 	MOV	#' ',(R0)
 	JMP	putchar_backspace_end
 putchar_backspace_in_without:
-	MOV	TEMP_CHAR,(R0)
 	JMP	putchar_backspace_end
 putchar_backspace_end:			;Salva o caracter sob o cursor
 	MOV    	CURSOR,R0
 	ADD     #VISOR,R0
 	MOV	(R0),TEMP_CHAR
+	JMP	putchar_end
 putchar_backspace_invalid:
 	JMP	putchar_end
 putchar_no_backspace:
