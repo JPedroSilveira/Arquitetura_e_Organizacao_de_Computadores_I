@@ -76,6 +76,7 @@ TEMP_MSG: dw		0		; Variável temporária
 CURSOR_MODE: dw		0		; Variavel que definife se o cursor esta visivel quando exibido
 CURSOR_COUNT: dw		0		; Contador do tempo de exibicao cursor
 CURSOR_TIME: dw		0		; Define o tempo de exibicao do cursor em ms
+TEMP_CHAR: db		0		; Guarda o char sob o cursor
 CURSOR_MODE_ON: equ		1		; Modo do cursor ativo
 CURSOR_MODE_OFF: equ		0		; Modo do cursor escondido
 ;------------------------------------------------------------------------------
@@ -95,7 +96,7 @@ _reset:
 	MOV 	#0,TICK_COUNT
 	MOV	#0,CURSOR_COUNT
 	MOV	#0,CURSOR_MODE
-	MOV	#500,CURSOR_TIME
+	MOV	#500,CURSOR_TIME	;INICIALIZA O TEMPO DO CURSOR COM 500ms PARA CADA ESTADO
 ; 5) Inicializar o teclado zerando o byte de estado (TECST, endereço 65498)
 	CLR 	TECST
 ; 6) Inicializar o timer
@@ -129,7 +130,6 @@ clear_visor_step:
 	JMP clear_visor_step
 fim_clear_visor:
 	MOV #0,CURSOR
-	MOV #h81,INTE
 	RTS R7
 
 ;------------------------------------------------------------------------------
@@ -143,7 +143,6 @@ fim_clear_visor:
 ;	Se R0!=0, há tecla
 ;------------------------------------------------------------------------------
 _kbhit:
-	CLR	INTE
 	CMP	TECST,#H80
 	BNE     kbhit_false
 	JMP 	kbhit_true
@@ -153,7 +152,6 @@ kbhit_true:
 kbhit_false:
 	MOV	#0,R0
 kbhit_fim:
-	MOV	#h81,INTE
 	RTS	R7
 
 	
@@ -168,12 +166,10 @@ kbhit_fim:
 ;	R0 == tecla digitada
 ;------------------------------------------------------------------------------
 _getchar:
-	CLR	INTE
 	JSR	R7,aux_getchar
 	MOV	TECDT,R0
 	CLR 	TECDT
 	CLR	TECST
-	MOV	#h81,INTE
 	RTS	R7
 
 aux_getchar:
@@ -205,8 +201,29 @@ _putchar:
 putchar_backspace:
 	TST	CURSOR
 	BEQ	putchar_backspace_invalid
+	CMP 	CURSOR,#36		;Verifica se o cursor não esta no limite
+	BPL	putchar_backspace_out
+	JMP     putchar_backspace_in
+putchar_backspace_out:
 	DEC	CURSOR
 	JMP	putchar_end
+putchar_backspace_in:
+	MOV    	CURSOR,R0
+	ADD     #VISOR,R0
+	DEC	CURSOR
+	CMP 	(R0),#'_'
+	BEQ	putchar_backspace_in_with
+	JMP	putchar_backspace_in_without
+putchar_backspace_in_with:
+	MOV	#' ',(R0)
+	JMP	putchar_backspace_end
+putchar_backspace_in_without:
+	MOV	TEMP_CHAR,(R0)
+	JMP	putchar_backspace_end
+putchar_backspace_end:			;Salva o caracter sob o cursor
+	MOV    	CURSOR,R0
+	ADD     #VISOR,R0
+	MOV	(R0),TEMP_CHAR
 putchar_backspace_invalid:
 	JMP	putchar_end
 putchar_no_backspace:
@@ -222,6 +239,7 @@ putchar_no_backspace_valid:
 	INC 	CURSOR
 	JMP	putchar_end
 putchar_end:
+	MOV	#h81,INTE
 	RTS	R7
 
 	
@@ -262,6 +280,17 @@ _putmsg_fim:
 ;------------------------------------------------------------------------------
 _setcursor:
 	CLR	INTE		;PARA INTERRUPCAO
+	MOV	R0,TEMP
+	MOV    	CURSOR,R0
+	ADD     #VISOR,R0
+	CMP	(R0),#'_'	;VERIFICA SE NAO HAVIA UM CURSOR
+	BEQ     setcursor_cursor
+	JMP	setcursor_end	
+setcursor_cursor:
+	MOV	#' ',(R0)	;LIMPA O ANTIGO CURSOR
+	JMP	setcursor_end
+setcursor_end:
+	MOV     TEMP,R0
 	MOV	R0,CURSOR	;SALVA O NOVO VALOR
 	MOV	#h81,INTE	;REINICIA INTERRUPCAO
 	RTS	R7	
@@ -278,7 +307,6 @@ _setcursor:
 ;	R0 = valor do tempo, em milisegundos
 ;------------------------------------------------------------------------------
 _start:
-	HLT
 	CLR	INTE
 	MOV 	R0,TICK_COUNT	
 	MOV	#h81,INTE
@@ -295,7 +323,6 @@ _start:
 ;	R0<>0, se o tempo programado estogou-se
 ;------------------------------------------------------------------------------
 _ready:
-	HLT
 	CLR	INTE
 	TST	TICK_COUNT
 	BEQ	_ready_true
@@ -324,8 +351,9 @@ ISR:
 	MOV		#0,R0
 	MOV		INTS,R0		; Verifica se a interrupção é do TIMER
 	AND		#1,R0
-	BEQ		ISR_NO_TIMER	; Se nao, nao faz nada
-	JMP		ISR_TIMER	; Se sim realiza as operacoes de TIMER
+	CMP		R0,#1
+	BEQ		ISR_TIMER	; Se nao, nao faz nada
+	JMP		ISR_NO_TIMER	; Se sim realiza as operacoes de TIMER
 ISR_NO_TIMER:
 	JMP		ISR_END
 ISR_TIMER:
@@ -343,27 +371,27 @@ ISR_CURSOR_OUT:
 	JMP		ISR_TIME_END
 ISR_CURSOR_IN:
 	MOV 		CURSOR_COUNT,R0
-	CMP		R0,#50		; Verifica se está no tempo de mudanca
+	CMP		R0,CURSOR_TIME		; Verifica se está no tempo de mudanca
 	BPL		CURSOR_MODE_CHANGE	; Muda o modo de exibicao
 	JMP		CURSOR_MODE_EXECUTE	; Executa o modo de exibicao
 CURSOR_MODE_CHANGE:
-	HLT
+	MOV		#0,CURSOR_COUNT
 	MOV		CURSOR_MODE,R0
-	CMP		R0,CURSOR_MODE_ON	;Verifica modo ativo
+	CMP		R0,#CURSOR_MODE_ON	;Verifica modo ativo
 	BEQ		CURSOR_MODE_GO_TO_OFF	;Muda para inativo
 	JMP		CURSOR_MODE_GO_TO_ON	;Muda para ativo
 CURSOR_MODE_GO_TO_OFF:
-	MOV		CURSOR_MODE_OFF,R0
+	MOV		#CURSOR_MODE_OFF,R0
 	MOV		R0,CURSOR_MODE
 	JMP		ISR_TIME_END
 CURSOR_MODE_GO_TO_ON:
-	MOV		CURSOR_MODE_ON,R0
+	MOV		#CURSOR_MODE_ON,R0
 	MOV		R0,CURSOR_MODE
 	JMP		ISR_TIME_END
 CURSOR_MODE_EXECUTE:
 	INC		CURSOR_COUNT		;Incrementa o contador de ms
 	MOV 		CURSOR_MODE,R0
-	CMP		R0,CURSOR_MODE_ON	;Verifica modo ativo
+	CMP		R0,#CURSOR_MODE_ON	;Verifica modo ativo
 	BEQ		CURSOR_MODE_EXECUTE_OFF	;Muda para inativo
 	JMP		CURSOR_MODE_EXECUTE_ON	;Muda para ativo
 CURSOR_MODE_EXECUTE_OFF:
