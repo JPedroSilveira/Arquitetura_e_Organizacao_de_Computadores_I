@@ -20,7 +20,8 @@ MsgErroCreateFile	db		"Erro na criacao do arquivo.", CR, LF, 0
 MsgErroLendo		db      "Erro ao ler valor de arquivo.", CR, LF, 0
 MsgErroReadFile		db		"Erro na leitura do arquivo.", CR, LF, 0
 MsgErroWriteFile	db		"Erro na escrita do arquivo.", CR, LF, 0
-MsgEncerramento		db  	"Programa encerrado devia a entrada do usuario.", CR, LF,0
+MsgEncerramento		db  	"Programa encerrado devia a entrada do usuario.", CR, LF, 0
+MsgErroAoContarCor  db      "Cor inválida lida.", CR, LF, 0
 TextHeader			db  	"********* Autor: Joao Pedro Silveira e Silva ***** Matricula: 00303397 *********", 0
 TextCleanLine		db 		"                                                                                ", 0
 TextArquivo			db		"Arquivo", 0
@@ -41,6 +42,7 @@ Str2				dw 	 	0
 TempB				db		0
 TempW				dw		0
 Contador			dw		0
+ContadorB			db		0
 NLadrilhosColuna	db		0
 NLadrilhosLinha		db      0
 LadoLadrilho		dw		0
@@ -52,6 +54,19 @@ ColunaAtual			db		0
 LinhaAtual			db		0
 CodCor				db      0
 ReadNumber          db      0
+
+ContLadrilhos		dw		16 dup(0) ; Vetor onde é armazenado a contagem dos ladrilhos
+LadrilhoFooterSize  equ     24		; Tamanho dos ladrilhos do footer
+LadrilhoFooterSpace equ     16		; Espaço entre os ladrilhos do footer
+InfoLineColumn		equ     2		; Coluna onde se inicia a impressão da quantidade de ladrilhos
+InfoLineRow			equ     29		; Linha onde se inicia a impressão da quantidade de ladrilhos
+InfoLineSpace		equ     5       ; Espaço entre cada informação de linha
+InfoLineDesl		db		0 		; Deslocamento entre as colunas na impressão da quantidade de ladrilhos
+InitColumnLadrilhosFooter equ	9		; Coluna inicial dos ladrihos no footer
+RowLadrilhosFooter	equ		430		; Linha dos ladrilhos do footer
+InitColumn			dw		0
+InitRow				dw		0
+NLadrilhosFooter	equ     15		; Quantidade de ladrilhos do footer
 
 
 ; Variável interna usada na rotina printf_w
@@ -88,6 +103,7 @@ String	db		MAXSTRING dup (?)		; Usado na funcao gets
 					CALL    print_bottom_line
 					CALL    print_footer
 					CALL    init_draw_variables
+					CALL    print_contagem_ladrilhos
 					CALL    read_input_file
 					JMP     final_end
 	program_end:
@@ -109,11 +125,25 @@ read_input_file PROC near
 		CMP  AX, 0
 		JE   fim_leitura_ladrilhos
 		MOV  CodCor, DL
-		CALL draw_ladrilho
+		CALL add_contagem_ladrilho
+		CALL draw_ladrilho_parede
+		CALL print_contagem_ladrilhos	; Atualiza a contagem de ladrilhos em tela
 		JMP  loop_leitura_ladrilhos
 fim_leitura_ladrilhos:
 	RET
 read_input_file ENDP
+
+;--------------------------------------------------------------------
+;Funcao que adiciona um novo ladrilho a contagem
+; Entrada: CodCor -> Codigo da cor do ladrilho
+;--------------------------------------------------------------------
+add_contagem_ladrilho PROC near
+	MOV BH, 0
+	MOV BL, CodCor
+	ADD BL, CodCor
+	INC ContLadrilhos[BX]
+	RET
+add_contagem_ladrilho ENDP
 ;--------------------------------------------------------------------
 ;Funcao para inicializar o quadro de desenho de ladrilhos
 ;--------------------------------------------------------------------
@@ -124,6 +154,18 @@ init_draw_variables	PROC near
 	MOV     LadrilhoCursorLine, 0
 	MOV     LinhaAtual, 0
 	MOV     ColunaAtual, 0
+	MOV     ContadorB, 0
+	zerar_contagem_cores_loop:
+		MOV		BH, 0
+		MOV     BL, ContadorB
+		ADD     BL, ContadorB
+		MOV 	ContLadrilhos[BX], 0	
+		MOV     CL, ContadorB
+		CMP     CL, NLadrilhosFooter
+		JE      zerar_contagem_cores_fim 
+		INC     ContadorB
+		JMP     zerar_contagem_cores_loop
+zerar_contagem_cores_fim:
 	RET
 init_draw_variables ENDP
 ;--------------------------------------------------------------------
@@ -305,52 +347,145 @@ print_footer PROC near
 	CALL    printf_s
 	LEA     BX, TextLadrilhosCor
 	CALL 	printf_s
+	CALL    draw_ladrilhos_footer
 	RET
 print_footer ENDP
 
+;--------------------------------------------------------------------
+;Funcao para imprimir a contagem de cada ladrilho no rodapé
+;--------------------------------------------------------------------
+print_contagem_ladrilhos PROC near
+	MOV  InfoLineDesl, 0
+	MOV ContadorB, 0
+	loop_print_contagem_ladrilhos:
+		CALL set_cursor_info_line
+		MOV		BH, 0
+		MOV     BL, ContadorB
+		ADD     BL, ContadorB
+		MOV 	AX,	ContLadrilhos[BX]
+		CALL	printf_w
+		MOV     CL, ContadorB
+		CMP     CL, NLadrilhosFooter
+		JE      print_contagem_ladrilhos_fim 
+		INC     ContadorB
+		MOV     AL, InfoLineSpace
+		ADD     InfoLineDesl, AL
+		JMP     loop_print_contagem_ladrilhos
+print_contagem_ladrilhos_fim:
+	RET
+print_contagem_ladrilhos ENDP
 
 ;--------------------------------------------------------------------
-;Funcao para desenhar ladrilho na tela
-; Entrada: CodCor -> código da cor
+;Funcao para desenhar todos os ladrilhos de informacao do footer
 ;--------------------------------------------------------------------
-draw_ladrilho PROC near
+draw_ladrilhos_footer	PROC near
+	MOV ContadorB, 0
+	MOV InitColumn, InitColumnLadrilhosFooter
+	MOV InitRow, RowLadrilhosFooter
+	draw_ladrilhos_footer_loop:
+		MOV  AL, ContadorB
+		MOV  CodCor, AL
+		CALL draw_ladrilho_footer
+		CMP ContadorB, NLadrilhosFooter
+		JE  draw_ladrilhos_footer_end
+		INC ContadorB
+		ADD InitColumn, LadrilhoFooterSize
+		ADD InitColumn, LadrilhoFooterSpace
+		JMP draw_ladrilhos_footer_loop
+draw_ladrilhos_footer_end:
+	RET
+draw_ladrilhos_footer	ENDP
+
+;--------------------------------------------------------------------
+;Funcao para desenhar ladrilho de informacao do footer
+; Entrada: CodCor -> código da cor
+; 		   InitColumn -> Coluna onde se inicia o desenho
+;		   InitRow    -> Linha onde se inicia o desenho
+;--------------------------------------------------------------------
+draw_ladrilho_footer PROC near
 	MOV Coluna, 0
 	MOV Linha, 0
-	loop_draw_ladrilho_linha:
-		loop_draw_ladrilho_coluna:
+	loop_draw_ladrilho_footer_linha:
+		loop_draw_ladrilho_footer_coluna:
 			CMP Coluna, 0
-			JE  Cor_Branca
+			JE  Cor_Branca_footer
 			CMP Linha, 0
-			JE  Cor_Branca
+			JE  Cor_Branca_footer
+			MOV DX, LadrilhoFooterSize
+			DEC DX
+			CMP Coluna, DX
+			JE  Cor_Branca_footer
+			MOV DX, LadrilhoFooterSize
+			DEC DX
+			CMP Linha, DX
+			JE  Cor_Branca_footer
+			MOV AL, CodCor
+			JMP Colorido_footer
+		Cor_Branca_footer:
+			MOV AL, 0fh
+		Colorido_footer:
+			MOV CX, Coluna
+			ADD CX, InitColumn
+			MOV DX, Linha
+			ADD DX, InitRow
+			CALL draw_pixel
+			INC Coluna
+			MOV AX, LadrilhoFooterSize
+			CMP Coluna, AX
+			JNE loop_draw_ladrilho_footer_coluna
+		INC Linha
+		MOV AX, LadrilhoFooterSize
+		CMP Linha, AX
+		JE draw_ladrilho_footer_fim
+		MOV Coluna, 0
+		JMP  loop_draw_ladrilho_footer_linha
+draw_ladrilho_footer_fim:
+	RET
+draw_ladrilho_footer ENDP
+
+
+;--------------------------------------------------------------------
+;Funcao para desenhar ladrilho na parede
+; Entrada: CodCor -> código da cor
+;--------------------------------------------------------------------
+draw_ladrilho_parede PROC near
+	MOV Coluna, 0
+	MOV Linha, 0
+	loop_draw_ladrilho_parede_linha:
+		loop_draw_ladrilho_parede_coluna:
+			CMP Coluna, 0
+			JE  Cor_Branca_parede
+			CMP Linha, 0
+			JE  Cor_Branca_parede
 			MOV DX, LadoLadrilho
 			DEC DX
 			CMP Coluna, DX
-			JE  Cor_Branca
+			JE  Cor_Branca_parede
 			MOV DX, LadoLadrilho
 			DEC DX
 			CMP Linha, DX
-			JE  Cor_Branca
+			JE  Cor_Branca_parede
 			MOV AL, CodCor
-			JMP Colorido
-		Cor_Branca:
+			JMP Colorido_parede
+		Cor_Branca_parede:
 			MOV AL, 0fh
-		Colorido:
+		Colorido_parede:
 			MOV CX, Coluna
 			ADD CX, LadrilhoCursorColumn
 			MOV DX, Linha
 			ADD DX, LadrilhoCursorLine
-			CALL draw_pixel
+			CALL draw_pixel_parede
 			INC Coluna
 			MOV AX, LadoLadrilho
 			CMP Coluna, AX
-			JNE loop_draw_ladrilho_coluna
+			JNE loop_draw_ladrilho_parede_coluna
 		INC Linha
 		MOV AX, LadoLadrilho
 		CMP Linha, AX
-		JE draw_ladrilho_fim
+		JE draw_ladrilho_parede_fim
 		MOV Coluna, 0
-		JMP  loop_draw_ladrilho_linha
-draw_ladrilho_fim:
+		JMP  loop_draw_ladrilho_parede_linha
+draw_ladrilho_parede_fim:
 	MOV AX, LadoLadrilho
 	ADD LadrilhoCursorColumn, AX
 	INC ColunaAtual
@@ -365,7 +500,20 @@ go_to_next_line:
 	ADD LadrilhoCursorLine, AX
 	INC LinhaAtual
 	RET
-draw_ladrilho ENDP
+draw_ladrilho_parede ENDP
+
+;--------------------------------------------------------------------
+;Funcao para desenhar um pixel na parede
+; Entrada: AL = cor do pixel
+;		   CX = column
+;		   DX = row
+;--------------------------------------------------------------------
+draw_pixel_parede PROC near
+	ADD     CX, 08		; Centraliza, compensando um inicio em 0 até 624
+	ADD     DX, 26		; Centraliza, compensando um inicio em 0 até 330
+	CALL    draw_pixel
+	RET
+draw_pixel_parede ENDP
 
 ;--------------------------------------------------------------------
 ;Funcao para desenhar um pixel
@@ -374,8 +522,6 @@ draw_ladrilho ENDP
 ;		   DX = row
 ;--------------------------------------------------------------------
 draw_pixel PROC near
-	ADD     CX, 08		; Centraliza, compensando um inicio em 0 até 624
-	ADD     DX, 26		; Centraliza, compensando um inicio em 0 até 330
 	MOV		BH, 00h	
 	MOV 	AH,	0Ch
 	INT 	10h
@@ -697,7 +843,7 @@ read_ladrilho PROC	near
 	JB		error_reading
 	CMP     AX, 0
 	JE		fim_leitura_documento
-	CMP     DL, 0DH				; if DL == CR
+	CMP     DL, CR				; if DL == CR
 	JE		ladrilho_line_end
 	JMP     read_ladrilho_color
 error_reading:
@@ -717,9 +863,9 @@ ladrilho_line_end:
 	CMP     AX, 0
 	JE		fim_leitura_documento
 read_ladrilho_color:
-	CMP     DL, 0DH				; if DL == CR
+	CMP     DL, CR				; if DL == CR
 	JE      fim_leitura_documento
-    CMP     DL, 57
+    CMP     DL, 58
 	JL		read_ladrilho_int
 	JMP     read_ladrilho_char
 read_ladrilho_int:
@@ -748,7 +894,7 @@ get_number_until_colon PROC	near
 		JB		get_number_error_reading
 		CMP     DL, 44				; if DL == ','
 		JE		number_end
-		CMP     DL, 0DH				; if DL == CR
+		CMP     DL, CR				; if DL == CR
 		JE		number_end_cr
 		MOV     AL, ReadNumber
 		MOV     BL, 10
@@ -858,13 +1004,28 @@ set_cursor_next_line PROC	near
 set_cursor_next_line ENDP
 
 ;--------------------------------------------------------------------
+; Função para posicionar o cursor na linha onde serão escritas
+; as informações sobre a quantidade dos ladrilhos
+;	Entrada: InfoLineDesl -> Deslocamento da coluna
+;--------------------------------------------------------------------
+set_cursor_info_line PROC	near
+	MOV     DH, InfoLineRow		; Row
+	MOV     DL, InfoLineColumn		; Column
+	ADD     DL, InfoLineDesl
+	MOV		BH, 0
+	MOV     AH, 2
+	INT     10h			
+	RET
+set_cursor_info_line ENDP
+
+;--------------------------------------------------------------------
 ;Funcao Le um string do teclado e coloca no buffer apontado por BX
 ;		gets(char *s -> BX)
 ;--------------------------------------------------------------------
 gets	PROC	near
 	PUSH	BX
 
-	MOV		AH,0ah						; Lê uma linha do teclado
+	MOV		AH,LF						; Lê uma linha do teclado
 	LEA		DX,String
 	MOV		byte ptr String, MAXSTRING-4	; 2 caracteres no inicio e um eventual CR LF no final
 	INT		21h
@@ -889,7 +1050,6 @@ printf_s	PROC	near
 	MOV		DL,[BX]
 	CMP		DL,0
 	JE		ps_1
-
 	PUSH	BX
 	MOV		AH,2
 	INT		21H
