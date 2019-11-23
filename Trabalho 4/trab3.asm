@@ -14,20 +14,29 @@ MsgPedeArquivoSrc	db		"Nome do arquivo de entrada: ", 0
 MsgPedeArquivoDst	db		"Nome do arquivo destino: ", 0
 MsgErroOpenFileIn	db		"Erro na abertura do arquivo de entrada.", CR, LF, CR, LF, 0
 MsgErroOpenCreateFileInReturn	db  "Voltando para fase anterior", 0
-MsgErroCreateFileOut 			db 	"Erro na criacao do arquivo de saida", CR, LF, CR, LF, 0
+MsgErroCreateFileOut 			db 	"Erro na criacao do arquivo de saida.", CR, LF, CR, LF, 0
+MsgErroOpenFileInReturn			db  "Erro na leitura do arquivo de saida.", 0
+MsgErroEscritaArquivoSaida		db  "Erro na escrita do arquivo de saida.", 0
 MsgPoint						db  ".", 0
 MsgErroCreateFile	db		"Erro na criacao do arquivo.", CR, LF, 0
 MsgErroLendo		db      "Erro ao ler valor de arquivo.", CR, LF, 0
 MsgErroReadFile		db		"Erro na leitura do arquivo.", CR, LF, 0
 MsgErroWriteFile	db		"Erro na escrita do arquivo.", CR, LF, 0
-MsgEncerramento		db  	"Programa encerrado devia a entrada do usuario.", CR, LF, 0
+MsgEncerramento		db  	"Programa encerrado pelo usuario.", CR, LF, 0
 MsgErroAoContarCor  db      "Cor inválida lida.", CR, LF, 0
+MsgEscrevendoResultados db  "Escrevendo resultados no arquivo de saida...", CR, LF, 0
+MsgAguardandoEnter  db  	"Aguardando entrada do usuario...", CR, LF, 0
+MsgLendoParede		db  	"Processando dados...", CR, LF, 0
 TextHeader			db  	"********* Autor: Joao Pedro Silveira e Silva ***** Matricula: 00303397 *********", 0
 TextCleanLine		db 		"                                                                                ", 0
+TextHeaderOutFile1	db	    "O arquivo ", 0
+TextHeaderOutFile2  db      " contem a seguinte quantidade de ladrilhos:", CR, LF, 0
 TextArquivo			db		"Arquivo", 0
 TextSpace			db		" ", 0
 TextSeparadorHifen	db		" - ", 0
 TextLadrilhosCor	db		"Total de ladrilhos por cor:", CR, LF, 0
+TextCores			db		"Preto - ", 0, "Azul - ", 0, "Verde - ", 0, "Ciano - ", 0, "Vermelho - ", 0, "Magenta - ", 0, "Marrom - ", 0, "Cinza claro - ", 0, "Cinza escuro - ", 0, "Azul claro - ", 0, "Verde claro - ", 0, "Ciano claro - ", 0, "Vermelhor claro - ", 0, "Magenta claro - ", 0, "Amarelo - ",0		
+TextEnd				db		CR, LF, 0
 UpperBar			db		201, 78 dup (205), 187, 0
 BottomBar			db		200, 78 dup (205), 188, 0
 SideBar				db      186,0
@@ -41,13 +50,15 @@ Str1				dw  	0
 Str2				dw 	 	0
 TempB				db		0
 TempW				dw		0
+TempKbhit			dw		0
 Contador			dw		0
 ContadorB			db		0
+ContadorStringPos	dw      0
 NLadrilhosColuna	db		0
 NLadrilhosLinha		db      0
 LadoLadrilho		dw		0
-LadrilhoCursorColumn dw      0
-LadrilhoCursorLine	 dw      0
+LadrilhoCursorColumn dw     0
+LadrilhoCursorLine	 dw     0
 Coluna				dw		0
 Linha				dw		0
 ColunaAtual			db		0
@@ -58,15 +69,15 @@ ReadNumber          db      0
 ContLadrilhos		dw		16 dup(0) ; Vetor onde é armazenado a contagem dos ladrilhos
 LadrilhoFooterSize  equ     24		; Tamanho dos ladrilhos do footer
 LadrilhoFooterSpace equ     16		; Espaço entre os ladrilhos do footer
-InfoLineColumn		equ     2		; Coluna onde se inicia a impressão da quantidade de ladrilhos
+InfoLineColumn		equ     3		; Coluna onde se inicia a impressão da quantidade de ladrilhos
 InfoLineRow			equ     29		; Linha onde se inicia a impressão da quantidade de ladrilhos
 InfoLineSpace		equ     5       ; Espaço entre cada informação de linha
 InfoLineDesl		db		0 		; Deslocamento entre as colunas na impressão da quantidade de ladrilhos
-InitColumnLadrilhosFooter equ	9		; Coluna inicial dos ladrihos no footer
+InitColumnLadrilhosFooter equ	22		; Coluna inicial dos ladrihos no footer
 RowLadrilhosFooter	equ		430		; Linha dos ladrilhos do footer
 InitColumn			dw		0
 InitRow				dw		0
-NLadrilhosFooter	equ     15		; Quantidade de ladrilhos do footer
+NLadrilhosFooter	equ     14		; Quantidade de ladrilhos do footer
 
 
 ; Variável interna usada na rotina printf_w
@@ -105,6 +116,9 @@ String	db		MAXSTRING dup (?)		; Usado na funcao gets
 					CALL    init_draw_variables
 					CALL    print_contagem_ladrilhos
 					CALL    read_input_file
+					CALL    write_results
+					CALL    wait_for_keybord
+					JMP		etapa_2
 					JMP     final_end
 	program_end:
 		CALL    set_text_mode
@@ -116,10 +130,91 @@ String	db		MAXSTRING dup (?)		; Usado na funcao gets
 	.exit	0
 	
 
+wait_for_keybord PROC near
+	CALL set_cursor_init
+	CALL clean_line
+	LEA BX, MsgAguardandoEnter
+	Call printf_s
+	CALL kbhit
+	RET
+wait_for_keybord ENDP
+;--------------------------------------------------------------------
+;Funcao para escrever os resultados da leitura no arquivo de saida
+;--------------------------------------------------------------------
+write_results PROC near
+	CALL 	set_cursor_init
+	CALL 	clean_line
+	LEA 	BX, MsgEscrevendoResultados
+	Call 	printf_s
+	CALL	add_file_out_sufix
+	LEA		DX, FileNameSrc
+	CALL    fopen
+	JB		fim_error_leitura_arquivo_saida
+	MOV     FileHandleDst, BX
+	LEA     BX, TextHeaderOutFile1
+	MOV     Str1, BX
+	MOV     BX, FileHandleDst
+	CALL    setString
+	CALL	add_file_in_sufix
+	LEA     BX, FileNameSrc
+	MOV     Str1, BX
+	MOV     BX, FileHandleDst
+	CALL    setString
+	LEA     BX, TextHeaderOutFile2
+	MOV     Str1, BX
+	MOV     BX, FileHandleDst
+	CALL    setString
+	MOV     ContadorB, 0
+	MOV     ContadorStringPos, 0
+	loop_escrita_ladrilhos:
+		LEA     BX, TextCores
+		ADD     BX, ContadorStringPos
+		MOV     Str1, BX
+		MOV     BX, FileHandleDst
+		CALL    setString
+		INC     AX
+		ADD     ContadorStringPos, AX
+		MOV     BH, 0
+		MOV		BL, ContadorB
+		ADD		BL, ContadorB
+		MOV 	AX,	ContLadrilhos[BX]
+		; sprintf_w(AX, BufferWRWORD)
+		LEA		BX, BufferWRWORD
+		CALL	sprintf_w
+		LEA		BX, BufferWRWORD
+		MOV		Str1, BX
+		MOV     BX, FileHandleDst
+		CALL    setString
+		MOV     CL, ContadorB
+		CMP     CL, NLadrilhosFooter
+		JE      fim_escrita_ladrilhos 
+		LEA     BX, TextEnd
+		MOV     Str1, BX
+		MOV     BX, FileHandleDst
+		CALL    setString
+		INC     ContadorB
+		JMP		loop_escrita_ladrilhos
+fim_error_leitura_arquivo_saida:
+	CALL set_cursor_init
+	CALL clean_line
+	LEA BX, MsgErroOpenFileInReturn
+	Call printf_s
+	RET
+fim_escrita_ladrilhos:
+	MOV		BX, FileHandleDst
+	CALL    fclose
+	RET
+write_results ENDP
+
+
 ;--------------------------------------------------------------------
 ;Funcao principal, lê e desenha os ladrilhos
 ;--------------------------------------------------------------------
 read_input_file PROC near
+	CALL set_cursor_init
+	CALL clean_line
+	LEA BX, MsgLendoParede
+	Call printf_s
 	loop_leitura_ladrilhos:
 		CALL read_ladrilho
 		CMP  AX, 0
@@ -130,6 +225,8 @@ read_input_file PROC near
 		CALL print_contagem_ladrilhos	; Atualiza a contagem de ladrilhos em tela
 		JMP  loop_leitura_ladrilhos
 fim_leitura_ladrilhos:
+	MOV  BX, FileHandleSrc
+	CALL fclose
 	RET
 read_input_file ENDP
 
@@ -195,6 +292,7 @@ load_files PROC near
 	CALL    fcreate
 	jb      create_out_error
 	MOV     FileHandleDst, BX
+	CALL    fclose
 	MOV     AX, 01h
 	RET
 open_in_error:
@@ -801,8 +899,8 @@ calculate_draw_size	ENDP
 ;       CF -> 0, se OK
 ;--------------------------------------------------------------------
 fopen	PROC	near
-	MOV		AL,0
-	MOV		AH,3dh
+	MOV		AL,2
+	MOV		AH,3Dh
 	INT		21h
 	MOV		BX,AX
 	RET
@@ -936,18 +1034,50 @@ getChar	ENDP
 
 ;--------------------------------------------------------------------
 ;Entra: BX -> file handle
-;       DL -> caractere
+;       dl -> caractere
 ;Sai:   AX -> numero de caracteres escritos
 ;		CF -> "0" se escrita ok
 ;--------------------------------------------------------------------
-setChar	PROC	near
-	MOV		AH,40h
-	MOV		CX,1
-	MOV		FileBuffer,DL
-	LEA		DX,FileBuffer
-	INT		21h
+setChar	proc	near
+	mov		ah,40h
+	mov		cx,1
+	mov		FileBuffer,dl
+	lea		dx,FileBuffer
+	int		21h
+	ret
+setChar	endp	
+
+
+;--------------------------------------------------------------------
+;Entra: BX -> file handle
+;       Str1 -> string
+;Sai:   CF -> "0" se escrita ok
+;	    AX -> Numero do final da string
+;--------------------------------------------------------------------
+setString	PROC	near
+	MOV TempW, BX
+	MOV Contador, 0
+	loop_set_string:
+		MOV BX, Str1
+		ADD BX, Contador
+		MOV DL, [BX]
+		CMP DL, 0
+		JE loop_set_string_end
+		MOV BX, TempW
+		CALL setChar
+		JB	setStringError
+		INC Contador
+		JMP loop_set_string
+loop_set_string_end:
+	MOV	AX, Contador
 	RET
-setChar	ENDP	
+setStringError:
+	CALL set_cursor_init
+	CALL clean_line
+	LEA BX, MsgErroEscritaArquivoSaida
+	Call printf_s
+	RET
+setString	ENDP
 
 ;--------------------------------------------------------------------
 ; Função para setar o cursor para o inicio da linha
@@ -1018,6 +1148,19 @@ set_cursor_info_line PROC	near
 	RET
 set_cursor_info_line ENDP
 
+
+;--------------------------------------------------------------------
+; Função para posicionar o cursor no inicio
+;--------------------------------------------------------------------
+set_cursor_init PROC	near
+	MOV     DH, 0		; Row
+	MOV     DL, 0		; Column
+	MOV		BH, 0
+	MOV     AH, 2
+	INT     10h			
+	RET
+set_cursor_init ENDP
+
 ;--------------------------------------------------------------------
 ;Funcao Le um string do teclado e coloca no buffer apontado por BX
 ;		gets(char *s -> BX)
@@ -1078,6 +1221,20 @@ printf_w	PROC	near
 	
 	RET
 printf_w	ENDP
+
+
+;
+;-------------------------------------------------------------------------
+;Função: KBHit
+;-------------------------------------------------------------------------
+kbhit PROC
+	MOV TempKbhit, AX
+	MOV AH, 07h
+	INT 21h
+	MOV AX, TempKbhit
+  	RET
+kbhit ENDP      
+;---------------
 
 ;
 ;-------------------------------------------------------------------------
