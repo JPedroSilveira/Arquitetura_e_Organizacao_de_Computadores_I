@@ -1,1 +1,1 @@
-INF05008-Arquitetura-e-Organizacao-de-Computadores-I-2019-2-UFRGS
+Exercícios desenvolvidos durante a disciplina Arquitetura e Organização de Computadores I (INF-UFRGS)
