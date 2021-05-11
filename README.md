@@ -1,1 +1,3 @@
-Exercícios desenvolvidos durante a disciplina Arquitetura e Organização de Computadores I (INF-UFRGS).
+# Arquitetura e Organização de Computadores I
+### Semestre: 2019/2
+#### Professor: Sérgio Luis Cechin
